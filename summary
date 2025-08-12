@@ -1,0 +1,655 @@
+🎯 FOREX DATA PROCESSING PIPELINE
+============================================================
+📋 Loading pipeline configuration from pipeline.yaml...
+
+📊 Pipeline Step 1/4: MERGE
+
+🔧 Generating merge configuration...
+✅ Step configuration saved to: data/merge_step.yaml
+
+============================================================
+🚀 Starting Merge step...
+📋 Using configuration: data/merge_step.yaml
+============================================================
+🚀 Starting CSV Merge Process
+==================================================
+📋 Loading configuration from data/merge_step.yaml...
+📁 Output directory: data
+🔤 Symbols to process: 2
+
+🔄 Processing symbol: audusd
+📁 Loading CSV files from: data/raw-tick-data/raw data/audusd
+📁 Found 366 CSV files in data/raw-tick-data/raw data/audusd
+Processing CSV files: 100%|████████████████████████████████████████████████████████| 366/366 [00:03<00:00, 94.18file/s]
+🔗 Merging dataframes...
+📊 Merged dataframe shape: (15138623, 6)
+📋 Columns: ['timestamp', 'askPrice', 'bidPrice', 'askVolume', 'bidVolume', 'source_file']
+💾 Memory usage: 1934.60 MB
+
+⚠️  Skipped Files Summary (52 files):
+============================================================
+
+📋 Empty file (0 bytes):
+   • audusd-tick-2024-10-19-2024-10-20.csv
+   • audusd-tick-2024-07-27-2024-07-28.csv
+   • audusd-tick-2024-06-22-2024-06-23.csv
+   • audusd-tick-2024-04-20-2024-04-21.csv
+   • audusd-tick-2024-04-06-2024-04-07.csv
+   • audusd-tick-2024-01-27-2024-01-28.csv
+   • audusd-tick-2024-12-28-2024-12-29.csv
+   • audusd-tick-2024-11-09-2024-11-10.csv
+   • audusd-tick-2024-11-30-2024-12-01.csv
+   • audusd-tick-2024-05-18-2024-05-19.csv
+   • audusd-tick-2024-12-07-2024-12-08.csv
+   • audusd-tick-2024-04-13-2024-04-14.csv
+   • audusd-tick-2024-11-02-2024-11-03.csv
+   • audusd-tick-2024-02-03-2024-02-04.csv
+   • audusd-tick-2024-06-01-2024-06-02.csv
+   • audusd-tick-2024-11-23-2024-11-24.csv
+   • audusd-tick-2024-02-24-2024-02-25.csv
+   • audusd-tick-2024-02-10-2024-02-11.csv
+   • audusd-tick-2024-09-21-2024-09-22.csv
+   • audusd-tick-2024-06-29-2024-06-30.csv
+   • audusd-tick-2024-09-14-2024-09-15.csv
+   • audusd-tick-2024-06-15-2024-06-16.csv
+   • audusd-tick-2024-08-17-2024-08-18.csv
+   • audusd-tick-2024-11-16-2024-11-17.csv
+   • audusd-tick-2024-03-09-2024-03-10.csv
+   • audusd-tick-2024-09-28-2024-09-29.csv
+   • audusd-tick-2024-08-03-2024-08-04.csv
+   • audusd-tick-2024-08-24-2024-08-25.csv
+   • audusd-tick-2024-10-26-2024-10-27.csv
+   • audusd-tick-2024-09-07-2024-09-08.csv
+   • audusd-tick-2024-06-08-2024-06-09.csv
+   • audusd-tick-2024-10-12-2024-10-13.csv
+   • audusd-tick-2024-08-10-2024-08-11.csv
+   • audusd-tick-2024-02-17-2024-02-18.csv
+   • audusd-tick-2024-04-27-2024-04-28.csv
+   • audusd-tick-2024-05-04-2024-05-05.csv
+   • audusd-tick-2024-12-21-2024-12-22.csv
+   • audusd-tick-2024-01-13-2024-01-14.csv
+   • audusd-tick-2024-03-16-2024-03-17.csv
+   • audusd-tick-2024-07-06-2024-07-07.csv
+   • audusd-tick-2024-07-20-2024-07-21.csv
+   • audusd-tick-2024-05-11-2024-05-12.csv
+   • audusd-tick-2024-12-14-2024-12-15.csv
+   • audusd-tick-2024-03-30-2024-03-31.csv
+   • audusd-tick-2024-10-05-2024-10-06.csv
+   • audusd-tick-2024-05-25-2024-05-26.csv
+   • audusd-tick-2024-03-02-2024-03-03.csv
+   • audusd-tick-2024-01-20-2024-01-21.csv
+   • audusd-tick-2024-07-13-2024-07-14.csv
+   • audusd-tick-2024-03-23-2024-03-24.csv
+   • audusd-tick-2024-08-31-2024-09-01.csv
+   • audusd-tick-2024-01-06-2024-01-07.csv
+============================================================
+💾 Saving to: data/audusd_ticks.parquet
+✅ Successfully saved 15138623 rows to data/audusd_ticks.parquet
+
+🔄 Processing symbol: eurusd
+📁 Loading CSV files from: data/raw-tick-data/raw data/eurusd
+📁 Found 366 CSV files in data/raw-tick-data/raw data/eurusd
+Processing CSV files: 100%|████████████████████████████████████████████████████████| 366/366 [00:05<00:00, 68.94file/s]
+🔗 Merging dataframes...
+📊 Merged dataframe shape: (20687149, 6)
+📋 Columns: ['timestamp', 'askPrice', 'bidPrice', 'askVolume', 'bidVolume', 'source_file']
+💾 Memory usage: 2643.66 MB
+
+⚠️  Skipped Files Summary (52 files):
+============================================================
+
+📋 Empty file (0 bytes):
+   • eurusd-tick-2024-05-18-2024-05-19.csv
+   • eurusd-tick-2024-12-07-2024-12-08.csv
+   • eurusd-tick-2024-04-13-2024-04-14.csv
+   • eurusd-tick-2024-01-27-2024-01-28.csv
+   • eurusd-tick-2024-12-28-2024-12-29.csv
+   • eurusd-tick-2024-11-09-2024-11-10.csv
+   • eurusd-tick-2024-11-30-2024-12-01.csv
+   • eurusd-tick-2024-04-20-2024-04-21.csv
+   • eurusd-tick-2024-04-06-2024-04-07.csv
+   • eurusd-tick-2024-10-19-2024-10-20.csv
+   • eurusd-tick-2024-06-22-2024-06-23.csv
+   • eurusd-tick-2024-07-27-2024-07-28.csv
+   • eurusd-tick-2024-09-14-2024-09-15.csv
+   • eurusd-tick-2024-06-15-2024-06-16.csv
+   • eurusd-tick-2024-08-17-2024-08-18.csv
+   • eurusd-tick-2024-11-16-2024-11-17.csv
+   • eurusd-tick-2024-02-10-2024-02-11.csv
+   • eurusd-tick-2024-06-29-2024-06-30.csv
+   • eurusd-tick-2024-09-21-2024-09-22.csv
+   • eurusd-tick-2024-11-23-2024-11-24.csv
+   • eurusd-tick-2024-02-24-2024-02-25.csv
+   • eurusd-tick-2024-02-03-2024-02-04.csv
+   • eurusd-tick-2024-11-02-2024-11-03.csv
+   • eurusd-tick-2024-06-01-2024-06-02.csv
+   • eurusd-tick-2024-02-17-2024-02-18.csv
+   • eurusd-tick-2024-06-08-2024-06-09.csv
+   • eurusd-tick-2024-10-12-2024-10-13.csv
+   • eurusd-tick-2024-08-10-2024-08-11.csv
+   • eurusd-tick-2024-08-24-2024-08-25.csv
+   • eurusd-tick-2024-09-07-2024-09-08.csv
+   • eurusd-tick-2024-10-26-2024-10-27.csv
+   • eurusd-tick-2024-03-09-2024-03-10.csv
+   • eurusd-tick-2024-09-28-2024-09-29.csv
+   • eurusd-tick-2024-08-03-2024-08-04.csv
+   • eurusd-tick-2024-01-20-2024-01-21.csv
+   • eurusd-tick-2024-03-23-2024-03-24.csv
+   • eurusd-tick-2024-07-13-2024-07-14.csv
+   • eurusd-tick-2024-08-31-2024-09-01.csv
+   • eurusd-tick-2024-01-06-2024-01-07.csv
+   • eurusd-tick-2024-05-25-2024-05-26.csv
+   • eurusd-tick-2024-03-02-2024-03-03.csv
+   • eurusd-tick-2024-03-16-2024-03-17.csv
+   • eurusd-tick-2024-01-13-2024-01-14.csv
+   • eurusd-tick-2024-07-06-2024-07-07.csv
+   • eurusd-tick-2024-12-14-2024-12-15.csv
+   • eurusd-tick-2024-07-20-2024-07-21.csv
+   • eurusd-tick-2024-05-11-2024-05-12.csv
+   • eurusd-tick-2024-03-30-2024-03-31.csv
+   • eurusd-tick-2024-10-05-2024-10-06.csv
+   • eurusd-tick-2024-04-27-2024-04-28.csv
+   • eurusd-tick-2024-05-04-2024-05-05.csv
+   • eurusd-tick-2024-12-21-2024-12-22.csv
+============================================================
+💾 Saving to: data/eurusd_ticks.parquet
+✅ Successfully saved 20687149 rows to data/eurusd_ticks.parquet
+
+🎯 Merge Process Summary:
+==================================================
+   📊 Total symbols: 2
+   ✅ Successful: 2
+   ❌ Failed: 0
+   📁 Output directory: data
+
+🎉 All symbols processed successfully!
+==================================================
+✅ Merge step completed successfully!
+📁 Generated 2 output files
+
+📊 Pipeline Step 2/4: CLEAN TICKS
+
+🔧 Generating clean ticks configuration...
+✅ Step configuration saved to: data/clean_ticks_step.yaml
+
+============================================================
+🚀 Starting Clean Ticks step...
+📋 Using configuration: data/clean_ticks_step.yaml
+============================================================
+🧹 Data Cleaning Tool
+==================================================
+📋 Loading configuration from data/clean_ticks_step.yaml...
+🔧 Pipeline stage: ticks
+📁 Input files: 2 files to process
+📁 Output directory: data
+⏰ Time column: timestamp
+
+============================================================
+
+🔄 Processing file: data/audusd_ticks.parquet
+📁 Loading data from data/audusd_ticks.parquet
+✅ Loaded 15138623 rows with 6 columns
+✅ Converted timestamp to datetime and sorted data
+📅 Time range: 2024-01-01 22:04:01.115000+00:00 to 2024-12-31 21:59:59.725000+00:00
+
+📊 STEP 1: Generating report before cleaning...
+
+🔍 Analyzing gaps in time series data...
+📊 Analyzing 4 features: ['askPrice', 'bidPrice', 'askVolume', 'bidVolume']
+  Analyzing gaps for askPrice...
+  Analyzing gaps for bidPrice...
+  Analyzing gaps for askVolume...
+  Analyzing gaps for bidVolume...
+
+================================================================================
+📊 GAP ANALYSIS SUMMARY
+================================================================================
+
+Feature-wise Gap Summary:
+--------------------------------------------------------------------------------
+  Feature  Total Gap Length Gap %  Number of Gaps  Max Gap (# Rows) Avg Gap (# Rows)
+ askPrice                 0 0.00%               0                 0              0.0
+ bidPrice                 0 0.00%               0                 0              0.0
+askVolume                 0 0.00%               0                 0              0.0
+bidVolume                 0 0.00%               0                 0              0.0
+
+--------------------------------------------------------------------------------
+OVERALL STATISTICS:
+--------------------------------------------------------------------------------
+Total features analyzed: 4
+Features with gaps: 0
+Features without gaps: 4
+
+================================================================================
+✅ Gap analysis report saved to data/audusd_ticks_report_before_cleaning.txt
+
+🧹 STEP 2: Cleaning the data...
+
+🧹 Starting data cleaning process...
+📊 Cleaning 4 features: ['askPrice', 'bidPrice', 'askVolume', 'bidVolume']
+  Cleaning askPrice...
+    ✅ No missing values found in askPrice
+  Cleaning bidPrice...
+    ✅ No missing values found in bidPrice
+  Cleaning askVolume...
+    ✅ No missing values found in askVolume
+  Cleaning bidVolume...
+    ✅ No missing values found in bidVolume
+
+🎉 Data cleaning completed! Total values cleaned: 0
+
+📊 STEP 3: Generating report after cleaning...
+
+🔍 Analyzing gaps in time series data...
+📊 Analyzing 4 features: ['askPrice', 'bidPrice', 'askVolume', 'bidVolume']
+  Analyzing gaps for askPrice...
+  Analyzing gaps for bidPrice...
+  Analyzing gaps for askVolume...
+  Analyzing gaps for bidVolume...
+
+================================================================================
+📊 GAP ANALYSIS SUMMARY
+================================================================================
+
+Feature-wise Gap Summary:
+--------------------------------------------------------------------------------
+  Feature  Total Gap Length Gap %  Number of Gaps  Max Gap (# Rows) Avg Gap (# Rows)
+ askPrice                 0 0.00%               0                 0              0.0
+ bidPrice                 0 0.00%               0                 0              0.0
+askVolume                 0 0.00%               0                 0              0.0
+bidVolume                 0 0.00%               0                 0              0.0
+
+--------------------------------------------------------------------------------
+OVERALL STATISTICS:
+--------------------------------------------------------------------------------
+Total features analyzed: 4
+Features with gaps: 0
+Features without gaps: 4
+
+================================================================================
+✅ Gap analysis report saved to data/audusd_ticks_report_after_cleaning.txt
+
+💾 STEP 4: Saving cleaned data...
+✅ Cleaned data saved to data/audusd_ticks_cleaned.parquet
+✅ Successfully completed cleaning process for data/audusd_ticks.parquet
+
+============================================================
+
+🔄 Processing file: data/eurusd_ticks.parquet
+📁 Loading data from data/eurusd_ticks.parquet
+✅ Loaded 20687149 rows with 6 columns
+✅ Converted timestamp to datetime and sorted data
+📅 Time range: 2024-01-01 22:00:12.108000+00:00 to 2024-12-31 21:59:58.249000+00:00
+
+📊 STEP 1: Generating report before cleaning...
+
+🔍 Analyzing gaps in time series data...
+📊 Analyzing 4 features: ['askPrice', 'bidPrice', 'askVolume', 'bidVolume']
+  Analyzing gaps for askPrice...
+  Analyzing gaps for bidPrice...
+  Analyzing gaps for askVolume...
+  Analyzing gaps for bidVolume...
+
+================================================================================
+📊 GAP ANALYSIS SUMMARY
+================================================================================
+
+Feature-wise Gap Summary:
+--------------------------------------------------------------------------------
+  Feature  Total Gap Length Gap %  Number of Gaps  Max Gap (# Rows) Avg Gap (# Rows)
+ askPrice                 0 0.00%               0                 0              0.0
+ bidPrice                 0 0.00%               0                 0              0.0
+askVolume                 0 0.00%               0                 0              0.0
+bidVolume                 0 0.00%               0                 0              0.0
+
+--------------------------------------------------------------------------------
+OVERALL STATISTICS:
+--------------------------------------------------------------------------------
+Total features analyzed: 4
+Features with gaps: 0
+Features without gaps: 4
+
+================================================================================
+✅ Gap analysis report saved to data/eurusd_ticks_report_before_cleaning.txt
+
+🧹 STEP 2: Cleaning the data...
+
+🧹 Starting data cleaning process...
+📊 Cleaning 4 features: ['askPrice', 'bidPrice', 'askVolume', 'bidVolume']
+  Cleaning askPrice...
+    ✅ No missing values found in askPrice
+  Cleaning bidPrice...
+    ✅ No missing values found in bidPrice
+  Cleaning askVolume...
+    ✅ No missing values found in askVolume
+  Cleaning bidVolume...
+    ✅ No missing values found in bidVolume
+
+🎉 Data cleaning completed! Total values cleaned: 0
+
+📊 STEP 3: Generating report after cleaning...
+
+🔍 Analyzing gaps in time series data...
+📊 Analyzing 4 features: ['askPrice', 'bidPrice', 'askVolume', 'bidVolume']
+  Analyzing gaps for askPrice...
+  Analyzing gaps for bidPrice...
+  Analyzing gaps for askVolume...
+  Analyzing gaps for bidVolume...
+
+================================================================================
+📊 GAP ANALYSIS SUMMARY
+================================================================================
+
+Feature-wise Gap Summary:
+--------------------------------------------------------------------------------
+  Feature  Total Gap Length Gap %  Number of Gaps  Max Gap (# Rows) Avg Gap (# Rows)
+ askPrice                 0 0.00%               0                 0              0.0
+ bidPrice                 0 0.00%               0                 0              0.0
+askVolume                 0 0.00%               0                 0              0.0
+bidVolume                 0 0.00%               0                 0              0.0
+
+--------------------------------------------------------------------------------
+OVERALL STATISTICS:
+--------------------------------------------------------------------------------
+Total features analyzed: 4
+Features with gaps: 0
+Features without gaps: 4
+
+================================================================================
+✅ Gap analysis report saved to data/eurusd_ticks_report_after_cleaning.txt
+
+💾 STEP 4: Saving cleaned data...
+✅ Cleaned data saved to data/eurusd_ticks_cleaned.parquet
+✅ Successfully completed cleaning process for data/eurusd_ticks.parquet
+
+🎯 Cleaning Process Summary:
+==================================================
+📊 Total files: 2
+✅ Successful: 2
+❌ Failed: 0
+📁 Output directory: data
+🎉 All files processed successfully!
+==================================================
+✅ Clean Ticks step completed successfully!
+📁 Generated 2 output files
+
+📊 Pipeline Step 3/4: AGGREGATE
+
+🔧 Generating aggregate configuration...
+✅ Step configuration saved to: data/aggregate_step.yaml
+
+============================================================
+🚀 Starting Aggregate step...
+📋 Using configuration: data/aggregate_step.yaml
+============================================================
+Loading configuration from data/aggregate_step.yaml...
+⏰ Time window: 5min
+🔧 Aggregators: open_price, high, low, close_price, mean, spread, volume, volatility
+📁 Input files: 2 files to process
+📁 Output directory: data
+✅ Loaded aggregator: open_price
+✅ Loaded aggregator: high
+✅ Loaded aggregator: low
+✅ Loaded aggregator: close_price
+✅ Loaded aggregator: mean
+✅ Loaded aggregator: spread
+✅ Loaded aggregator: volume
+✅ Loaded aggregator: volatility
+
+📁 Processing file: data/audusd_ticks_cleaned.parquet
+📊 Loaded 15138623 rows with columns: ['timestamp', 'askPrice', 'bidPrice', 'askVolume', 'bidVolume', 'source_file']
+📊 Aggregating data into 5min windows using resampling...
+🕐 Converting Unix timestamps to datetime for resampling...
+📅 Data time range: 2024-01-01 22:04:01.115000+00:00 to 2024-12-31 21:59:59.725000+00:00
+📊 Total ticks: 15138623
+⏰ Creating 5min time windows...
+✅ Successfully aggregated 105120 time windows
+✅ Successfully aggregated 105120 windows for audusd
+
+📁 Processing file: data/eurusd_ticks_cleaned.parquet
+📊 Loaded 20687149 rows with columns: ['timestamp', 'askPrice', 'bidPrice', 'askVolume', 'bidVolume', 'source_file']
+📊 Aggregating data into 5min windows using resampling...
+🕐 Converting Unix timestamps to datetime for resampling...
+📅 Data time range: 2024-01-01 22:00:12.108000+00:00 to 2024-12-31 21:59:58.249000+00:00
+📊 Total ticks: 20687149
+⏰ Creating 5min time windows...
+✅ Successfully aggregated 105120 time windows
+✅ Successfully aggregated 105120 windows for eurusd
+
+🔄 Combining 2 dataframes...
+✅ Combined dataframe shape: (105120, 19)
+📊 Columns: ['start_time', 'audusd_tick_count', 'audusd_open_price', 'audusd_high', 'audusd_low', 'audusd_close_price', 'audusd_mean', 'audusd_spread', 'audusd_volume', 'audusd_volatility', 'eurusd_tick_count', 'eurusd_open_price', 'eurusd_high', 'eurusd_low', 'eurusd_close_price', 'eurusd_mean', 'eurusd_spread', 'eurusd_volume', 'eurusd_volatility']
+💾 Saving combined data to: data/5min_20240101_20241231.parquet
+✅ Successfully saved combined data with 105120 rows to data/5min_20240101_20241231.parquet
+
+📈 Aggregation Summary:
+   - Time window: 5min
+   - Aggregators applied: open_price, high, low, close_price, mean, spread, volume, volatility
+   - Files processed: 2/2
+   - Symbols combined: ['audusd', 'eurusd']
+🎉 All files processed successfully!
+✅ Aggregate step completed successfully!
+📁 Generated 1 output files
+
+📊 Pipeline Step 4/4: CLEAN AGGREGATED
+
+🔧 Generating clean aggregated configuration...
+✅ Step configuration saved to: data/clean_aggregated_step.yaml
+
+============================================================
+🚀 Starting Clean Aggregated step...
+📋 Using configuration: data/clean_aggregated_step.yaml
+============================================================
+🧹 Data Cleaning Tool
+==================================================
+📋 Loading configuration from data/clean_aggregated_step.yaml...
+🔧 Pipeline stage: aggregated
+📁 Input files: 1 files to process
+📁 Output directory: data
+⏰ Time column: start_time
+
+============================================================
+
+🔄 Processing file: data/5min_20240101_20241231.parquet
+📁 Loading data from data/5min_20240101_20241231.parquet
+✅ Loaded 105120 rows with 19 columns
+✅ Converted start_time to datetime and sorted data
+📅 Time range: 2024-01-01 22:00:00+00:00 to 2024-12-31 21:55:00+00:00
+⏰ Detected time interval: 0 days 00:05:00
+
+📊 STEP 1: Generating report before cleaning...
+
+🔍 Analyzing gaps in time series data...
+📊 Analyzing 18 features: ['audusd_tick_count', 'audusd_open_price', 'audusd_high', 'audusd_low', 'audusd_close_price']...
+  Analyzing gaps for audusd_tick_count...
+  Analyzing gaps for audusd_open_price...
+  Analyzing gaps for audusd_high...
+  Analyzing gaps for audusd_low...
+  Analyzing gaps for audusd_close_price...
+  Analyzing gaps for audusd_mean...
+  Analyzing gaps for audusd_spread...
+  Analyzing gaps for audusd_volume...
+  Analyzing gaps for audusd_volatility...
+  Analyzing gaps for eurusd_tick_count...
+  Analyzing gaps for eurusd_open_price...
+  Analyzing gaps for eurusd_high...
+  Analyzing gaps for eurusd_low...
+  Analyzing gaps for eurusd_close_price...
+  Analyzing gaps for eurusd_mean...
+  Analyzing gaps for eurusd_spread...
+  Analyzing gaps for eurusd_volume...
+  Analyzing gaps for eurusd_volatility...
+
+================================================================================
+📊 GAP ANALYSIS SUMMARY
+================================================================================
+
+Feature-wise Gap Summary:
+--------------------------------------------------------------------------------
+           Feature  Total Gap Length  Gap %  Number of Gaps Max Gap (days) Avg Gap (days)
+ audusd_tick_count                 0  0.00%               0            0.0            0.0
+ audusd_open_price             30359 28.88%              86            2.0            1.2
+       audusd_high             30359 28.88%              86            2.0            1.2
+        audusd_low             30359 28.88%              86            2.0            1.2
+audusd_close_price             30359 28.88%              86            2.0            1.2
+       audusd_mean             30359 28.88%              86            2.0            1.2
+     audusd_spread             30359 28.88%              86            2.0            1.2
+     audusd_volume             30359 28.88%              86            2.0            1.2
+ audusd_volatility             30443 28.96%             125            2.0            0.8
+ eurusd_tick_count                 0  0.00%               0            0.0            0.0
+ eurusd_open_price             30148 28.68%              74            2.0            1.4
+       eurusd_high             30148 28.68%              74            2.0            1.4
+        eurusd_low             30148 28.68%              74            2.0            1.4
+eurusd_close_price             30148 28.68%              74            2.0            1.4
+       eurusd_mean             30148 28.68%              74            2.0            1.4
+     eurusd_spread             30148 28.68%              74            2.0            1.4
+     eurusd_volume             30148 28.68%              74            2.0            1.4
+ eurusd_volatility             30199 28.73%              88            2.0            1.2
+
+--------------------------------------------------------------------------------
+OVERALL STATISTICS:
+--------------------------------------------------------------------------------
+Total features analyzed: 18
+Features with gaps: 16
+Features without gaps: 2
+
+Feature with largest gap length: audusd_volatility (30443 total gap length, 28.96%)
+Feature with longest gap: audusd_open_price (2.0 days)
+Average gap percentage across all features: 25.59%
+
+================================================================================
+✅ Gap analysis report saved to data/5min_20240101_20241231_report_before_cleaning.txt
+
+🧹 STEP 2: Cleaning the data...
+
+🧹 Starting data cleaning process...
+📊 Cleaning 18 features: ['audusd_tick_count', 'audusd_open_price', 'audusd_high', 'audusd_low', 'audusd_close_price']...
+  Cleaning audusd_tick_count...
+    ✅ No missing values found in audusd_tick_count
+  Cleaning audusd_open_price...
+    ✅ Cleaned 30359 missing values in audusd_open_price
+  Cleaning audusd_high...
+    ✅ Cleaned 30359 missing values in audusd_high
+  Cleaning audusd_low...
+    ✅ Cleaned 30359 missing values in audusd_low
+  Cleaning audusd_close_price...
+    ✅ Cleaned 30359 missing values in audusd_close_price
+  Cleaning audusd_mean...
+    ✅ Cleaned 30359 missing values in audusd_mean
+  Cleaning audusd_spread...
+    ✅ Cleaned 30359 missing values in audusd_spread
+  Cleaning audusd_volume...
+    ✅ Cleaned 30359 missing values in audusd_volume
+  Cleaning audusd_volatility...
+    ✅ Cleaned 30443 missing values in audusd_volatility
+  Cleaning eurusd_tick_count...
+    ✅ No missing values found in eurusd_tick_count
+  Cleaning eurusd_open_price...
+    ✅ Cleaned 30148 missing values in eurusd_open_price
+  Cleaning eurusd_high...
+    ✅ Cleaned 30148 missing values in eurusd_high
+  Cleaning eurusd_low...
+    ✅ Cleaned 30148 missing values in eurusd_low
+  Cleaning eurusd_close_price...
+    ✅ Cleaned 30148 missing values in eurusd_close_price
+  Cleaning eurusd_mean...
+    ✅ Cleaned 30148 missing values in eurusd_mean
+  Cleaning eurusd_spread...
+    ✅ Cleaned 30148 missing values in eurusd_spread
+  Cleaning eurusd_volume...
+    ✅ Cleaned 30148 missing values in eurusd_volume
+  Cleaning eurusd_volatility...
+    ✅ Cleaned 30199 missing values in eurusd_volatility
+
+🎉 Data cleaning completed! Total values cleaned: 484191
+
+📊 STEP 3: Generating report after cleaning...
+
+🔍 Analyzing gaps in time series data...
+📊 Analyzing 18 features: ['audusd_tick_count', 'audusd_open_price', 'audusd_high', 'audusd_low', 'audusd_close_price']...
+  Analyzing gaps for audusd_tick_count...
+  Analyzing gaps for audusd_open_price...
+  Analyzing gaps for audusd_high...
+  Analyzing gaps for audusd_low...
+  Analyzing gaps for audusd_close_price...
+  Analyzing gaps for audusd_mean...
+  Analyzing gaps for audusd_spread...
+  Analyzing gaps for audusd_volume...
+  Analyzing gaps for audusd_volatility...
+  Analyzing gaps for eurusd_tick_count...
+  Analyzing gaps for eurusd_open_price...
+  Analyzing gaps for eurusd_high...
+  Analyzing gaps for eurusd_low...
+  Analyzing gaps for eurusd_close_price...
+  Analyzing gaps for eurusd_mean...
+  Analyzing gaps for eurusd_spread...
+  Analyzing gaps for eurusd_volume...
+  Analyzing gaps for eurusd_volatility...
+
+================================================================================
+📊 GAP ANALYSIS SUMMARY
+================================================================================
+
+Feature-wise Gap Summary:
+--------------------------------------------------------------------------------
+           Feature  Total Gap Length Gap %  Number of Gaps Max Gap (days) Avg Gap (days)
+ audusd_tick_count                 0 0.00%               0            0.0            0.0
+ audusd_open_price                 0 0.00%               0            0.0            0.0
+       audusd_high                 0 0.00%               0            0.0            0.0
+        audusd_low                 0 0.00%               0            0.0            0.0
+audusd_close_price                 0 0.00%               0            0.0            0.0
+       audusd_mean                 0 0.00%               0            0.0            0.0
+     audusd_spread                 0 0.00%               0            0.0            0.0
+     audusd_volume                 0 0.00%               0            0.0            0.0
+ audusd_volatility                 0 0.00%               0            0.0            0.0
+ eurusd_tick_count                 0 0.00%               0            0.0            0.0
+ eurusd_open_price                 0 0.00%               0            0.0            0.0
+       eurusd_high                 0 0.00%               0            0.0            0.0
+        eurusd_low                 0 0.00%               0            0.0            0.0
+eurusd_close_price                 0 0.00%               0            0.0            0.0
+       eurusd_mean                 0 0.00%               0            0.0            0.0
+     eurusd_spread                 0 0.00%               0            0.0            0.0
+     eurusd_volume                 0 0.00%               0            0.0            0.0
+ eurusd_volatility                 0 0.00%               0            0.0            0.0
+
+--------------------------------------------------------------------------------
+OVERALL STATISTICS:
+--------------------------------------------------------------------------------
+Total features analyzed: 18
+Features with gaps: 0
+Features without gaps: 18
+
+================================================================================
+✅ Gap analysis report saved to data/5min_20240101_20241231_report_after_cleaning.txt
+
+💾 STEP 4: Saving cleaned data...
+✅ Cleaned data saved to data/5min_20240101_20241231_cleaned.parquet
+✅ Successfully completed cleaning process for data/5min_20240101_20241231.parquet
+
+🎯 Cleaning Process Summary:
+==================================================
+📊 Total files: 1
+✅ Successful: 1
+❌ Failed: 0
+📁 Output directory: data
+🎉 All files processed successfully!
+==================================================
+✅ Clean Aggregated step completed successfully!
+📁 Generated 1 output files
+
+============================================================
+🎯 PIPELINE COMPLETION SUMMARY
+============================================================
+✅ All pipeline steps completed successfully!
+📊 Total steps completed: 4/4
+📁 Final output files: 1
+
+📋 FINAL OUTPUT FILES:
+   1. 5min_20240101_20241231_cleaned.parquet (13.22 MB)
+
+🎉 Pipeline completed successfully!
+📁 Final output directory: data
+📋 Main output file: 5min_20240101_20241231_cleaned.parquet
+============================================================
+
+📋 Pipeline execution completed!

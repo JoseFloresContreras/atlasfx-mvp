@@ -1,0 +1,85 @@
+# Pipeline configuration for end-to-end data processing
+# This orchestrates the complete workflow: merge -> clean -> aggregate -> clean
+
+# Pipeline metadata
+pipeline:
+  name: "Forex Data Processing Pipeline"
+  description: "Process raw tick data through merge, clean, aggregate, and final clean steps"
+  version: "1.0"
+
+# Steps to execute in order (available: merge, clean_ticks, aggregate, clean_aggregated, augment, clean_augmented, visualize)
+steps: [merge, clean_ticks, aggregate, clean_aggregated, augment, clean_augmented, visualize]
+# steps: [augment]
+
+# Global output directory for all stages
+output_directory: data
+
+# Step 1: Merge Configuration
+merge:
+  # List of symbols and their corresponding folder paths to process
+  symbols:
+    - symbol: audusd
+      folder_path: data/raw-tick-data/raw data/audusd
+    - symbol: eurusd
+      folder_path: data/raw-tick-data/raw data/eurusd
+    # - symbol: gbpusd
+    #   folder_path: data/raw-tick-data/raw data/gbpusd
+    # - symbol: usdjpy
+    #   folder_path: data/raw-tick-data/raw data/usdjpy
+    # - symbol: usdcad
+    #   folder_path: data/raw-tick-data/raw data/usdcad
+    # - symbol: usdchf
+    #   folder_path: data/raw-tick-data/raw data/usdchf
+    # - symbol: nzdusd
+    #   folder_path: data/raw-tick-data/raw data/nzdusd
+
+# Step 2: First Clean Configuration (for tick data)
+clean_ticks:
+  time_column: timestamp
+
+# Step 3: Aggregate Configuration
+aggregate:
+  time_window: 1h  # pandas time window convention
+  output_filename: forex_data
+  aggregators:
+    - tick_count
+    - open_price
+    - high
+    - low
+    - close_price
+    - mean
+    - spread
+    - volume
+    - volatility
+
+# Step 4: Final Clean Configuration (for aggregated data)
+clean_aggregated:
+
+# Step 5: Augment Configuration
+augment:
+  output_filename: forex_data
+  augmentations:
+    6:
+      - rolling_count
+      - rolling_max
+      - rolling_min
+      - rolling_mean
+    12:
+      - rolling_quantile_25
+      - rolling_skew
+      - rolling_kurt
+      - rolling_var
+      - rolling_std
+      - rolling_median
+      - rolling_sum
+      - rolling_quantile_75
+
+# Step 6: Final Clean Configuration (for augmented data)
+clean_augmented:
+
+# Step 7: Visualization and Data Split Configuration
+visualize:
+  split:
+    train: 0.7
+    val: 0.15
+    test: 0.15
