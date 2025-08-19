@@ -5,6 +5,7 @@ import yaml
 from datetime import datetime, timedelta
 from typing import Dict, List, Callable, Any
 import importlib.util
+from logger import log
 
 def load_config(config_file="aggregate.yaml"):
     """
@@ -21,9 +22,13 @@ def load_config(config_file="aggregate.yaml"):
             config = yaml.safe_load(file)
         return config
     except FileNotFoundError:
-        raise FileNotFoundError(f"Configuration file '{config_file}' not found")
+        error_msg = f"Configuration file '{config_file}' not found"
+        log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+        raise FileNotFoundError(error_msg)
     except yaml.YAMLError as e:
-        raise yaml.YAMLError(f"Error parsing YAML file: {e}")
+        error_msg = f"Error parsing YAML file: {e}"
+        log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+        raise yaml.YAMLError(error_msg)
 
 def load_aggregators(aggregator_names: List[str]) -> Dict[str, Callable]:
     """
@@ -46,9 +51,9 @@ def load_aggregators(aggregator_names: List[str]) -> Dict[str, Callable]:
     for name in aggregator_names:
         if hasattr(aggregators_module, name):
             aggregators[name] = getattr(aggregators_module, name)
-            print(f"✅ Loaded aggregator: {name}")
+            log.info(f"✅ Loaded aggregator: {name}")
         else:
-            print(f"⚠️  Warning: Aggregator '{name}' not found in aggregators.py")
+            log.warning(f"⚠️  Warning: Aggregator '{name}' not found in aggregators.py")
     
     return aggregators
 
@@ -65,15 +70,15 @@ def aggregate_data(data: pd.DataFrame, time_window: str, aggregators: Dict[str, 
         pd.DataFrame: Aggregated data with one row per time window
     """
     if data.empty:
-        print("⚠️  No data to aggregate")
+        log.warning("⚠️  No data to aggregate")
         return pd.DataFrame()
     
     # Parse time window for resampling
     resample_freq = time_window
-    print(f"📊 Aggregating data into {time_window} windows using resampling...")
+    log.info(f"📊 Aggregating data into {time_window} windows using resampling...")
     
     # Convert Unix timestamps to datetime for resampling
-    print("🕐 Converting Unix timestamps to datetime for resampling...")
+    log.info("🕐 Converting Unix timestamps to datetime for resampling...")
     data = data.copy()
     data['datetime'] = pd.to_datetime(data['timestamp'], unit='ms', utc=True)
     
@@ -83,11 +88,11 @@ def aggregate_data(data: pd.DataFrame, time_window: str, aggregators: Dict[str, 
     # Sort by timestamp
     data = data.sort_index()
     
-    print(f"📅 Data time range: {data.index.min()} to {data.index.max()}")
-    print(f"📊 Total ticks: {len(data)}")
+    log.info(f"📅 Data time range: {data.index.min()} to {data.index.max()}")
+    log.info(f"📊 Total ticks: {len(data)}")
     
     # Use pandas resampling to create time windows
-    print(f"⏰ Creating {resample_freq} time windows...")
+    log.info(f"⏰ Creating {resample_freq} time windows...")
     
     # Resample the data
     resampled = data.resample(resample_freq)
@@ -98,7 +103,7 @@ def aggregate_data(data: pd.DataFrame, time_window: str, aggregators: Dict[str, 
         # Get the window start time from the group's name (which is the window start)
         window_start = group.name
         window_duration = pd.Timedelta(resample_freq)
-        
+
         result = {
             'start_time': int(window_start.timestamp() * 1000)
         }
@@ -118,7 +123,7 @@ def aggregate_data(data: pd.DataFrame, time_window: str, aggregators: Dict[str, 
     results = resampled.apply(apply_aggregators)
     
     # Convert results to DataFrame
-    aggregated_df = pd.DataFrame(results.tolist())
+    aggregated_df = pd.DataFrame(results.tolist()).astype(np.float32)
     
     if not aggregated_df.empty:
         # Reorder columns for better readability
@@ -141,34 +146,40 @@ def process_single_file(input_file: str, time_window: str, aggregators: Dict[str
         tuple: (success: bool, symbol: str, aggregated_data: pd.DataFrame or None)
     """
     try:
-        print(f"\n📁 Processing file: {input_file}")
+        log.info(f"\n📁 Processing file: {input_file}")
         
         # Check if file exists
         if not os.path.exists(input_file):
-            print(f"❌ File not found: {input_file}")
-            return False, None, None
+            log.error(f"❌ File not found: {input_file}")
+            raise Exception(f"File not found: {input_file}")
         
         # Load the data
         data = pd.read_parquet(input_file)
-        print(f"📊 Loaded {len(data)} rows with columns: {list(data.columns)}")
+        log.info(f"📊 Loaded {len(data)} rows with columns: {list(data.columns)}")
+        log.info(f"Data types: {data.dtypes}")
+        log.info(f"Data memory usage: {data.memory_usage(deep=True).sum() / 1024**2:.2f} MB")
         
         # Aggregate the data
         aggregated_data = aggregate_data(data, time_window, aggregators)
+
+        log.info(f"Aggregated data shape: {aggregated_data.shape}")
+        log.info(f"Aggregated data types: {aggregated_data.dtypes}")
+        log.info(f"Aggregated data memory usage: {aggregated_data.memory_usage(deep=True).sum() / 1024**2:.2f} MB")
         
         if aggregated_data.empty:
-            print(f"⚠️  No data was aggregated for {input_file}")
+            log.warning(f"⚠️  No data was aggregated for {input_file}")
             return False, None, None
         
         # Extract symbol from input filename (everything before first underscore)
         filename = os.path.basename(input_file)  # Get just the filename without path
         symbol = filename.split('_')[0]  # Extract symbol from filename
         
-        print(f"✅ Successfully aggregated {len(aggregated_data)} windows for {symbol}")
+        log.info(f"✅ Successfully aggregated {len(aggregated_data)} windows for {symbol}")
         return True, symbol, aggregated_data
         
     except Exception as e:
-        print(f"❌ Error processing {input_file}: {e}")
-        return False, None, None
+        log.error(f"❌ Error processing {input_file}: {e}")
+        raise e
 
 def combine_aggregated_dataframes(dataframes_dict: Dict[str, pd.DataFrame], time_window: str) -> pd.DataFrame:
     """
@@ -182,10 +193,10 @@ def combine_aggregated_dataframes(dataframes_dict: Dict[str, pd.DataFrame], time
         pd.DataFrame: Combined dataframe with symbol prefixes in column names
     """
     if not dataframes_dict:
-        print("❌ No dataframes to combine")
+        log.error("❌ No dataframes to combine")
         return pd.DataFrame()
     
-    print(f"\n🔄 Combining {len(dataframes_dict)} dataframes...")
+    log.info(f"\n🔄 Combining {len(dataframes_dict)} dataframes...")
     
     # Start with the first dataframe as base
     symbols = list(dataframes_dict.keys())
@@ -197,7 +208,7 @@ def combine_aggregated_dataframes(dataframes_dict: Dict[str, pd.DataFrame], time
     
     # Add symbol prefix to base dataframe columns (except time-related columns)
     for col in combined_df.columns:
-        combined_df[f'{base_symbol}_{col}'] = combined_df[col]
+        combined_df[f'{base_symbol} | {col}'] = combined_df[col]
         combined_df.drop(columns=[col], inplace=True)
     
     # Merge other dataframes
@@ -207,7 +218,7 @@ def combine_aggregated_dataframes(dataframes_dict: Dict[str, pd.DataFrame], time
         
         # Add symbol prefix to columns (except time-related columns)
         for col in df.columns:
-            df[f'{symbol}_{col}'] = df[col]
+            df[f'{symbol} | {col}'] = df[col]
             df.drop(columns=[col], inplace=True)
                 
         combined_df = combined_df.merge(df, left_index=True, right_index=True, how='outer')
@@ -215,8 +226,8 @@ def combine_aggregated_dataframes(dataframes_dict: Dict[str, pd.DataFrame], time
     # Reset index to make window_start_unix a column again
     combined_df.reset_index(inplace=True)
     
-    print(f"✅ Combined dataframe shape: {combined_df.shape}")
-    print(f"📊 Columns: {list(combined_df.columns)}")
+    log.info(f"✅ Combined dataframe shape: {combined_df.shape}")
+    log.info(f"📊 Columns: {list(combined_df.columns)}")
     
     return combined_df
 
@@ -238,16 +249,17 @@ def run_aggregate(config):
         # Get custom output filename if specified
         custom_filename = config.get('output_filename', None)
         
-        print(f"⏰ Time window: {time_window}")
-        print(f"🔧 Aggregators: {', '.join(aggregator_names)}")
-        print(f"📁 Input files: {len(input_files)} files to process")
-        print(f"📁 Output directory: {output_directory}")
+        log.info(f"⏰ Time window: {time_window}")
+        log.info(f"🔧 Aggregators: {', '.join(aggregator_names)}")
+        log.info(f"📁 Input files: {len(input_files)} files to process")
+        log.info(f"📁 Output directory: {output_directory}")
         
         # Load aggregator functions
         aggregators = load_aggregators(aggregator_names)
         
         if not aggregators:
-            print("❌ No valid aggregators loaded. Exiting.")
+            error_msg = "No valid aggregators loaded. Exiting."
+            log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
             return
         
         # Process each input file and collect dataframes
@@ -274,27 +286,28 @@ def run_aggregate(config):
                 output_path = os.path.join(output_directory, output_filename)
                 
                 # Save combined data
-                print(f"💾 Saving combined data to: {output_path}")
+                log.info(f"💾 Saving combined data to: {output_path}")
                 combined_df.to_parquet(output_path, engine='pyarrow')
                 
-                print(f"✅ Successfully saved combined data with {len(combined_df)} rows to {output_path}")
+                log.info(f"✅ Successfully saved combined data with {len(combined_df)} rows to {output_path}")
             else:
-                print("❌ Failed to combine dataframes")
+                log.error("❌ Failed to combine dataframes")
         else:
-            print("❌ No dataframes to combine")
+            log.error("❌ No dataframes to combine")
         
         # Display final summary
-        print(f"\n📈 Aggregation Summary:")
-        print(f"   - Time window: {time_window}")
-        print(f"   - Aggregators applied: {', '.join(aggregator_names)}")
-        print(f"   - Files processed: {successful_files}/{total_files}")
-        print(f"   - Symbols combined: {list(dataframes_dict.keys())}")
+        log.info(f"\n📈 Aggregation Summary:")
+        log.info(f"   - Time window: {time_window}")
+        log.info(f"   - Aggregators applied: {', '.join(aggregator_names)}")
+        log.info(f"   - Files processed: {successful_files}/{total_files}")
+        log.info(f"   - Symbols combined: {list(dataframes_dict.keys())}")
         
         if successful_files == total_files:
-            print("🎉 All files processed successfully!")
+            log.info("🎉 All files processed successfully!")
         else:
-            print(f"⚠️  {total_files - successful_files} files failed to process")
+            log.warning(f"⚠️  {total_files - successful_files} files failed to process")
         
     except Exception as e:
-        print(f"❌ Error: {e}")
-        raise 
+        error_msg = f"Error: {e}"
+        log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+        raise e

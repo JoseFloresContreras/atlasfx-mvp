@@ -9,10 +9,10 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any
 import yaml
-from sklearn.model_selection import train_test_split
 import warnings
+from logger import log
 warnings.filterwarnings('ignore')
 
 # Set style for better plots
@@ -45,24 +45,34 @@ def load_data(input_file: str) -> pd.DataFrame:
     Returns:
         pd.DataFrame: Loaded data
     """
-    print(f"📊 Loading data from {input_file}...")
-    df = pd.read_parquet(input_file)
-    print(f"✅ Loaded {len(df):,} rows and {len(df.columns)} columns")
-    return df
+    try:
+        log.info(f"📊 Loading data from {input_file}...")
+        df = pd.read_parquet(input_file)
+        log.info(f"✅ Loaded {len(df):,} rows and {len(df.columns)} columns")
+        return df
+    except FileNotFoundError:
+        error_msg = f"Input file not found: {input_file}"
+        log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+        raise FileNotFoundError(error_msg)
+    except Exception as e:
+        error_msg = f"Error loading data from {input_file}: {e}"
+        log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+        raise Exception(error_msg)
 
 
-def generate_basic_statistics(df: pd.DataFrame, viz_dir: str) -> Dict[str, Any]:
+def generate_basic_statistics(df: pd.DataFrame, viz_dir: str, time_window: str = None) -> Dict[str, Any]:
     """
     Generate basic statistics and save to file.
     
     Args:
         df (pd.DataFrame): Input dataframe
         viz_dir (str): Visualization directory
+        time_window (str): Time window used for aggregation (e.g., '5min', '1H')
         
     Returns:
         Dict[str, Any]: Basic statistics
     """
-    print("📊 Generating basic statistics...")
+    log.info("📊 Generating basic statistics...")
     
     # Basic statistics
     stats = {
@@ -81,6 +91,8 @@ def generate_basic_statistics(df: pd.DataFrame, viz_dir: str) -> Dict[str, Any]:
     with open(stats_file, 'w') as f:
         f.write("BASIC DATA STATISTICS\n")
         f.write("=" * 50 + "\n\n")
+        if time_window:
+            f.write(f"Time Window: {time_window}\n\n")
         f.write(f"Total Rows: {stats['total_rows']:,}\n")
         f.write(f"Total Columns: {stats['total_columns']}\n")
         f.write(f"Memory Usage: {stats['memory_usage_mb']:.2f} MB\n\n")
@@ -96,11 +108,11 @@ def generate_basic_statistics(df: pd.DataFrame, viz_dir: str) -> Dict[str, Any]:
         for col, dtype in stats['data_types'].items():
             f.write(f"{col}: {dtype}\n")
     
-    print(f"✅ Basic statistics saved to {stats_file}")
+    log.info(f"✅ Basic statistics saved to {stats_file}")
     return stats
 
 
-def create_time_series_plots(df: pd.DataFrame, viz_dir: str, time_column: str = 'start_time'):
+def create_time_series_plots(df: pd.DataFrame, viz_dir: str, time_column: str = 'start_time', time_window: str = None):
     """
     Create time series plots for key metrics.
     
@@ -108,8 +120,9 @@ def create_time_series_plots(df: pd.DataFrame, viz_dir: str, time_column: str = 
         df (pd.DataFrame): Input dataframe
         viz_dir (str): Visualization directory
         time_column (str): Name of time column
+        time_window (str): Time window used for aggregation (e.g., '5min', '1H')
     """
-    print("📈 Creating time series plots...")
+    log.info("📈 Creating time series plots...")
     
     # Ensure time column is datetime
     if time_column in df.columns:
@@ -124,7 +137,7 @@ def create_time_series_plots(df: pd.DataFrame, viz_dir: str, time_column: str = 
     available_metrics = [col for col in key_metrics if col in numeric_cols]
     
     if not available_metrics:
-        print("⚠️  No key metrics found for time series plotting")
+        log.warning("⚠️  No key metrics found for time series plotting")
         return
     
     # Create time series plots
@@ -132,9 +145,16 @@ def create_time_series_plots(df: pd.DataFrame, viz_dir: str, time_column: str = 
     if len(available_metrics) == 1:
         axes = [axes]
     
+    # Create main title with time window information
+    if time_window:
+        fig.suptitle(f'Time Series Analysis - {time_window} Aggregated Data', fontsize=16, y=0.98)
+    
     for i, metric in enumerate(available_metrics):
         axes[i].plot(df[time_column], df[metric], linewidth=0.5, alpha=0.7)
-        axes[i].set_title(f'{metric.replace("_", " ").title()} Over Time')
+        title = f'{metric.replace("_", " ").title()} Over Time'
+        if time_window:
+            title += f' ({time_window} intervals)'
+        axes[i].set_title(title)
         axes[i].set_ylabel(metric.replace("_", " ").title())
         axes[i].grid(True, alpha=0.3)
         
@@ -146,24 +166,25 @@ def create_time_series_plots(df: pd.DataFrame, viz_dir: str, time_column: str = 
     plt.savefig(time_series_file, dpi=300, bbox_inches='tight')
     plt.close()
     
-    print(f"✅ Time series plots saved to {time_series_file}")
+    log.info(f"✅ Time series plots saved to {time_series_file}")
 
 
-def create_correlation_heatmap(df: pd.DataFrame, viz_dir: str):
+def create_correlation_heatmap(df: pd.DataFrame, viz_dir: str, time_window: str = None):
     """
     Create correlation heatmap for numeric columns.
     
     Args:
         df (pd.DataFrame): Input dataframe
         viz_dir (str): Visualization directory
+        time_window (str): Time window used for aggregation (e.g., '5min', '1H')
     """
-    print("🔥 Creating correlation heatmap...")
+    log.info("🔥 Creating correlation heatmap...")
     
     # Get numeric columns and limit to first 30 for correlation analysis
     numeric_df = df.select_dtypes(include=[np.number]).iloc[:, :30]
     
     if len(numeric_df.columns) < 2:
-        print("⚠️  Not enough numeric columns for correlation analysis")
+        log.warning("⚠️  Not enough numeric columns for correlation analysis")
         return
     
     # Calculate correlation matrix
@@ -174,83 +195,179 @@ def create_correlation_heatmap(df: pd.DataFrame, viz_dir: str):
     mask = np.triu(np.ones_like(corr_matrix, dtype=bool))
     sns.heatmap(corr_matrix, mask=mask, annot=True, cmap='coolwarm', center=0,
                 square=True, linewidths=0.5, cbar_kws={"shrink": .8})
-    plt.title('Correlation Heatmap')
+    
+    title = 'Correlation Heatmap'
+    if time_window:
+        title += f' - {time_window} Aggregated Data'
+    plt.title(title)
     plt.tight_layout()
     
     correlation_file = os.path.join(viz_dir, "correlation_heatmap.png")
     plt.savefig(correlation_file, dpi=300, bbox_inches='tight')
     plt.close()
     
-    print(f"✅ Correlation heatmap saved to {correlation_file}")
+    log.info(f"✅ Correlation heatmap saved to {correlation_file}")
 
 
-def create_distribution_plots(df: pd.DataFrame, viz_dir: str):
+def create_distribution_plots(df: pd.DataFrame, viz_dir: str, time_window: str = None):
     """
     Create distribution plots for numeric columns.
     
     Args:
         df (pd.DataFrame): Input dataframe
         viz_dir (str): Visualization directory
+        time_window (str): Time window used for aggregation (e.g., '5min', '1H')
     """
-    print("📊 Creating distribution plots...")
+    log.info("📊 Creating distribution plots...")
     
-    # Get numeric columns and limit to first 20 for visualization
-    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()[:20]
+    # Get all numeric columns for visualization
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
     
     if not numeric_cols:
-        print("⚠️  No numeric columns found for distribution plots")
+        log.warning("⚠️  No numeric columns found for distribution plots")
         return
     
-    # Create subplots
-    n_cols = min(3, len(numeric_cols))
-    n_rows = (len(numeric_cols) + n_cols - 1) // n_cols
+    # Create distributions folder and clear it
+    distributions_dir = os.path.join(viz_dir, "distributions")
+    if os.path.exists(distributions_dir):
+        # Clear the directory
+        for file in os.listdir(distributions_dir):
+            file_path = os.path.join(distributions_dir, file)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+        log.info(f"🗑️  Cleared existing files in {distributions_dir}")
+    else:
+        os.makedirs(distributions_dir, exist_ok=True)
+        log.info(f"📁 Created distributions directory: {distributions_dir}")
     
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(15, 5*n_rows))
-    if n_rows == 1:
-        axes = axes.reshape(1, -1)
-    if n_cols == 1:
-        axes = axes.reshape(-1, 1)
-    
-    for i, col in enumerate(numeric_cols):
-        row = i // n_cols
-        col_idx = i % n_cols
+    # Create individual distribution plots for each column
+    for col in numeric_cols:
+        plt.figure(figsize=(10, 6))
         
         # Create histogram
-        axes[row, col_idx].hist(df[col].dropna(), bins=50, alpha=0.7, edgecolor='black')
-        axes[row, col_idx].set_title(f'{col.replace("_", " ").title()} Distribution')
-        axes[row, col_idx].set_xlabel(col.replace("_", " ").title())
-        axes[row, col_idx].set_ylabel('Frequency')
-        axes[row, col_idx].grid(True, alpha=0.3)
+        plt.hist(df[col].dropna(), bins=50, alpha=0.7, edgecolor='black', color='skyblue')
+        plt.title(f'{col.replace("_", " ").title()} Distribution')
+        if time_window:
+            plt.title(f'{col.replace("_", " ").title()} Distribution - {time_window} Data')
+        plt.xlabel(col.replace("_", " ").title())
+        plt.ylabel('Frequency')
+        plt.grid(True, alpha=0.3)
+        
+        # Save individual plot
+        plot_filename = f"{col}_distribution.png"
+        plot_path = os.path.join(distributions_dir, plot_filename)
+        plt.savefig(plot_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        log.info(f"  ✅ Saved distribution plot: {plot_filename}")
     
-    # Hide empty subplots
-    for i in range(len(numeric_cols), n_rows * n_cols):
-        row = i // n_cols
-        col_idx = i % n_cols
-        axes[row, col_idx].set_visible(False)
-    
-    plt.tight_layout()
-    distribution_file = os.path.join(viz_dir, "distribution_plots.png")
-    plt.savefig(distribution_file, dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    print(f"✅ Distribution plots saved to {distribution_file}")
+    # Do not create combined subplot; only individual plots are saved
+    log.info(f"✅ Individual distribution plots saved to {distributions_dir}")
 
 
-def create_box_plots(df: pd.DataFrame, viz_dir: str):
+def create_combined_distribution_plots(train_df: pd.DataFrame, val_df: pd.DataFrame, test_df: pd.DataFrame, 
+                                     viz_dir: str, time_window: str = None):
+    """
+    Create distribution plots with train/val/test subplots for each numeric column.
+    
+    Args:
+        train_df (pd.DataFrame): Training dataframe
+        val_df (pd.DataFrame): Validation dataframe  
+        test_df (pd.DataFrame): Test dataframe
+        viz_dir (str): Visualization directory
+        time_window (str): Time window used for aggregation (e.g., '5min', '1H')
+    """
+    log.info("📊 Creating combined distribution plots with train/val/test splits...")
+    
+    # Get all numeric columns from all dataframes
+    train_cols = set(train_df.select_dtypes(include=[np.number]).columns.tolist())
+    val_cols = set(val_df.select_dtypes(include=[np.number]).columns.tolist())
+    test_cols = set(test_df.select_dtypes(include=[np.number]).columns.tolist())
+    
+    # Get common columns across all splits
+    all_cols = train_cols.intersection(val_cols).intersection(test_cols)
+    numeric_cols = list(all_cols)
+    
+    if not numeric_cols:
+        log.warning("⚠️  No common numeric columns found across all splits for distribution plots")
+        return
+    
+    # Create distributions folder and clear it
+    distributions_dir = os.path.join(viz_dir, "distributions")
+    if os.path.exists(distributions_dir):
+        # Clear the directory
+        for file in os.listdir(distributions_dir):
+            file_path = os.path.join(distributions_dir, file)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+        log.info(f"🗑️  Cleared existing files in {distributions_dir}")
+    else:
+        os.makedirs(distributions_dir, exist_ok=True)
+        log.info(f"📁 Created distributions directory: {distributions_dir}")
+    
+    # Create individual distribution plots with train/val/test subplots for each column
+    for col in numeric_cols:
+        fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+        
+        # Train subplot
+        axes[0].hist(train_df[col].dropna(), bins=50, alpha=0.7, edgecolor='black', color='blue', label='Train')
+        axes[0].set_title(f'{col.replace("_", " ").title()} - Train')
+        axes[0].set_xlabel(col.replace("_", " ").title())
+        axes[0].set_ylabel('Frequency')
+        axes[0].grid(True, alpha=0.3)
+        axes[0].legend()
+        
+        # Validation subplot
+        axes[1].hist(val_df[col].dropna(), bins=50, alpha=0.7, edgecolor='black', color='orange', label='Validation')
+        axes[1].set_title(f'{col.replace("_", " ").title()} - Validation')
+        axes[1].set_xlabel(col.replace("_", " ").title())
+        axes[1].set_ylabel('Frequency')
+        axes[1].grid(True, alpha=0.3)
+        axes[1].legend()
+        
+        # Test subplot
+        axes[2].hist(test_df[col].dropna(), bins=50, alpha=0.7, edgecolor='black', color='red', label='Test')
+        axes[2].set_title(f'{col.replace("_", " ").title()} - Test')
+        axes[2].set_xlabel(col.replace("_", " ").title())
+        axes[2].set_ylabel('Frequency')
+        axes[2].grid(True, alpha=0.3)
+        axes[2].legend()
+        
+        # Add overall title
+        if time_window:
+            fig.suptitle(f'{col.replace("_", " ").title()} Distribution - {time_window} Data', fontsize=16, y=0.98)
+        else:
+            fig.suptitle(f'{col.replace("_", " ").title()} Distribution', fontsize=16, y=0.98)
+        
+        plt.tight_layout()
+        
+        # Save individual plot
+        plot_filename = f"{col}_distribution.png"
+        plot_path = os.path.join(distributions_dir, plot_filename)
+        plt.savefig(plot_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        log.info(f"  ✅ Saved combined distribution plot: {plot_filename}")
+    
+    log.info(f"✅ Combined distribution plots saved to {distributions_dir}")
+
+
+def create_box_plots(df: pd.DataFrame, viz_dir: str, time_window: str = None):
     """
     Create box plots for numeric columns to show outliers.
     
     Args:
         df (pd.DataFrame): Input dataframe
         viz_dir (str): Visualization directory
+        time_window (str): Time window used for aggregation (e.g., '5min', '1H')
     """
-    print("📦 Creating box plots...")
+    log.info("📦 Creating box plots...")
     
     # Get numeric columns and limit to first 20 for visualization
     numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()[:20]
     
     if not numeric_cols:
-        print("⚠️  No numeric columns found for box plots")
+        log.warning("⚠️  No numeric columns found for box plots")
         return
     
     # Create subplots
@@ -262,6 +379,10 @@ def create_box_plots(df: pd.DataFrame, viz_dir: str):
         axes = axes.reshape(1, -1)
     if n_cols == 1:
         axes = axes.reshape(-1, 1)
+    
+    # Add main title with time window information
+    if time_window:
+        fig.suptitle(f'Box Plot Analysis - {time_window} Aggregated Data', fontsize=16, y=0.98)
     
     for i, col in enumerate(numeric_cols):
         row = i // n_cols
@@ -284,155 +405,98 @@ def create_box_plots(df: pd.DataFrame, viz_dir: str):
     plt.savefig(boxplot_file, dpi=300, bbox_inches='tight')
     plt.close()
     
-    print(f"✅ Box plots saved to {boxplot_file}")
+    log.info(f"✅ Box plots saved to {boxplot_file}")
 
 
-def split_data(df: pd.DataFrame, split_config: Dict[str, float], output_directory: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """
-    Split data into train, validation, and test sets.
-    
-    Args:
-        df (pd.DataFrame): Input dataframe
-        split_config (Dict[str, float]): Split configuration with train, val, test ratios
-        output_directory (str): Output directory for saving splits
-        
-    Returns:
-        Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]: Train, validation, and test dataframes
-    """
-    print("✂️  Splitting data into train/validation/test sets...")
-    
-    # Get split ratios
-    train_ratio = split_config.get('train', 0.7)
-    val_ratio = split_config.get('val', 0.15)
-    test_ratio = split_config.get('test', 0.15)
-    
-    # Validate ratios
-    total_ratio = train_ratio + val_ratio + test_ratio
-    if abs(total_ratio - 1.0) > 1e-6:
-        print(f"⚠️  Warning: Split ratios sum to {total_ratio:.3f}, normalizing to 1.0")
-        train_ratio /= total_ratio
-        val_ratio /= total_ratio
-        test_ratio /= total_ratio
-    
-    print(f"📊 Split ratios - Train: {train_ratio:.1%}, Val: {val_ratio:.1%}, Test: {test_ratio:.1%}")
-    
-    # First split: train + temp, test
-    train_temp, test_df = train_test_split(df, test_size=test_ratio, random_state=42, shuffle=False)
-    
-    # Second split: train, validation
-    val_ratio_adjusted = val_ratio / (train_ratio + val_ratio)
-    train_df, val_df = train_test_split(train_temp, test_size=val_ratio_adjusted, random_state=42, shuffle=False)
-    
-    print(f"✅ Split complete:")
-    print(f"   Train: {len(train_df):,} rows ({len(train_df)/len(df)*100:.1f}%)")
-    print(f"   Validation: {len(val_df):,} rows ({len(val_df)/len(df)*100:.1f}%)")
-    print(f"   Test: {len(test_df):,} rows ({len(test_df)/len(df)*100:.1f}%)")
-    
-    # Save splits
-    splits_dir = os.path.join(output_directory, "splits")
-    os.makedirs(splits_dir, exist_ok=True)
-    
-    train_file = os.path.join(splits_dir, "train.parquet")
-    val_file = os.path.join(splits_dir, "validation.parquet")
-    test_file = os.path.join(splits_dir, "test.parquet")
-    
-    train_df.to_parquet(train_file, index=False)
-    val_df.to_parquet(val_file, index=False)
-    test_df.to_parquet(test_file, index=False)
-    
-    print(f"✅ Data splits saved to {splits_dir}/")
-    
-    return train_df, val_df, test_df
 
 
-def create_split_summary(train_df: pd.DataFrame, val_df: pd.DataFrame, test_df: pd.DataFrame, viz_dir: str):
-    """
-    Create summary statistics for each split.
-    
-    Args:
-        train_df (pd.DataFrame): Training data
-        val_df (pd.DataFrame): Validation data
-        test_df (pd.DataFrame): Test data
-        viz_dir (str): Visualization directory
-    """
-    print("📋 Creating split summary...")
-    
-    # Calculate basic statistics for each split
-    splits = {
-        'Train': train_df,
-        'Validation': val_df,
-        'Test': test_df
-    }
-    
-    summary_file = os.path.join(viz_dir, "split_summary.txt")
-    with open(summary_file, 'w') as f:
-        f.write("DATA SPLIT SUMMARY\n")
-        f.write("=" * 50 + "\n\n")
-        
-        for split_name, split_df in splits.items():
-            f.write(f"{split_name.upper()} SET:\n")
-            f.write("-" * 20 + "\n")
-            f.write(f"Rows: {len(split_df):,}\n")
-            f.write(f"Columns: {len(split_df.columns)}\n")
-            f.write(f"Memory Usage: {split_df.memory_usage(deep=True).sum() / 1024 / 1024:.2f} MB\n")
-            f.write(f"Missing Values: {split_df.isnull().sum().sum()}\n\n")
-            
-            # Time range if time column exists
-            time_cols = split_df.select_dtypes(include=['datetime64']).columns.tolist()
-            if time_cols:
-                time_col = time_cols[0]
-                f.write(f"Time Range: {split_df[time_col].min()} to {split_df[time_col].max()}\n\n")
-    
-    print(f"✅ Split summary saved to {summary_file}")
+
+
 
 
 def run_visualize(config: Dict[str, Any]):
     """
-    Run the visualization and data splitting pipeline.
+    Run the visualization pipeline for train/val/test datasets.
     
     Args:
         config (Dict[str, Any]): Configuration dictionary
     """
-    print("🎨 Starting visualization and data splitting pipeline...")
-    
-    # Extract configuration
-    input_file = config['input_file']
-    output_directory = config['output_directory']
-    time_column = config.get('time_column', 'start_time')
-    split_config = config.get('split', {'train': 0.7, 'val': 0.15, 'test': 0.15})
-    
-    # Create visualization directory
-    viz_dir = create_visualization_directory(output_directory)
-    
-    # Load data
-    df = load_data(input_file)
-    
-    # Generate basic statistics
-    stats = generate_basic_statistics(df, viz_dir)
-    
-    # Create visualizations
-    create_time_series_plots(df, viz_dir, time_column)
-    create_correlation_heatmap(df, viz_dir)
-    create_distribution_plots(df, viz_dir)
-    create_box_plots(df, viz_dir)
-    
-    # Split data
-    train_df, val_df, test_df = split_data(df, split_config, output_directory)
-    
-    # Create split summary
-    create_split_summary(train_df, val_df, test_df, viz_dir)
-    
-    print("✅ Visualization and data splitting pipeline completed successfully!")
-    print(f"📁 Visualizations saved to: {viz_dir}")
-    print(f"📁 Data splits saved to: {os.path.join(output_directory, 'splits')}")
+    try:
+        log.info("🎨 Starting visualization pipeline...")
+        
+        # Extract configuration
+        input_files = config['input_files']
+        output_directory = config['output_directory']
+        time_column = config.get('time_column', 'start_time')
+        time_window = config.get('time_window', None)
+        
+        # Create visualization directory
+        viz_dir = create_visualization_directory(output_directory)
+        
+        # Initialize dataframes for each split
+        train_df = None
+        val_df = None
+        test_df = None
+        
+        # Process each split (train/val/test) separately
+        for input_file in input_files:
+            log.info(f"\n📊 Processing visualization for: {os.path.basename(input_file)}")
+            
+            # Load data
+            df = load_data(input_file)
+            
+            # Extract split name from filename
+            filename = os.path.basename(input_file)
+            # Look for train, val, or test in the filename
+            if '_train.parquet' in filename:
+                split_name = 'train'
+                train_df = df
+            elif '_val.parquet' in filename:
+                split_name = 'val'
+                val_df = df
+            elif '_test.parquet' in filename:
+                split_name = 'test'
+                test_df = df
+            else:
+                split_name = 'unknown'
+            
+            # Create split-specific visualization directory
+            split_viz_dir = os.path.join(viz_dir, split_name)
+            os.makedirs(split_viz_dir, exist_ok=True)
+            
+            # Generate basic statistics
+            stats = generate_basic_statistics(df, split_viz_dir, time_window)
+            
+            # Create visualizations (except distribution plots - will be done combined)
+            create_time_series_plots(df, split_viz_dir, time_column, time_window)
+            create_correlation_heatmap(df, split_viz_dir, time_window)
+            create_box_plots(df, split_viz_dir, time_window)
+            
+            log.info(f"✅ Visualization completed for {split_name} dataset")
+        
+        # Create combined distribution plots with train/val/test splits
+        if train_df is not None and val_df is not None and test_df is not None:
+            log.info("\n📊 Creating combined distribution plots with train/val/test splits...")
+            create_combined_distribution_plots(train_df, val_df, test_df, viz_dir, time_window)
+        else:
+            log.warning("⚠️  Not all splits (train/val/test) found, skipping combined distribution plots")
+        
+        log.info("✅ Visualization pipeline completed successfully!")
+        log.info(f"📁 Visualizations saved to: {viz_dir}")
+        
+    except Exception as e:
+        error_msg = f"Visualization pipeline failed: {e}"
+        log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+        raise e
 
 
 if __name__ == "__main__":
     # Example usage
     config = {
-        'input_file': 'data/5min_forex_data_cleaned_forex_data_augmented_cleaned.parquet',
+        'input_file': 'data/5min_forex_data_cleaned_forex_data_featurized_cleaned.parquet',
         'output_directory': 'data',
         'time_column': 'start_time',
+        'time_window': '5min',
         'split': {
             'train': 0.7,
             'val': 0.15,

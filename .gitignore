@@ -1,3 +1,9 @@
 data
 archived
 *.code-workspace
+logs/*
+.DS_Store
+coverage*
+.venv/
+test_data/*
+test_report.md

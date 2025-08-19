@@ -12,6 +12,7 @@ import numpy as np
 from typing import Dict, List, Tuple, Optional
 from pathlib import Path
 from datetime import datetime
+from logger import log
 
 
 def load_config(config_file="clean.yaml"):
@@ -29,9 +30,13 @@ def load_config(config_file="clean.yaml"):
             config = yaml.safe_load(file)
         return config
     except FileNotFoundError:
-        raise FileNotFoundError(f"Configuration file '{config_file}' not found")
+        error_msg = f"Configuration file '{config_file}' not found"
+        log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+        raise FileNotFoundError(error_msg)
     except yaml.YAMLError as e:
-        raise yaml.YAMLError(f"Error parsing YAML file: {e}")
+        error_msg = f"Error parsing YAML file: {e}"
+        log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+        raise yaml.YAMLError(error_msg)
 
 
 def load_data(input_file: str) -> pd.DataFrame:
@@ -45,14 +50,18 @@ def load_data(input_file: str) -> pd.DataFrame:
         pd.DataFrame: Loaded data
     """
     try:
-        print(f"📁 Loading data from {input_file}")
+        log.info(f"📁 Loading data from {input_file}")
         data = pd.read_parquet(input_file)
-        print(f"✅ Loaded {len(data)} rows with {len(data.columns)} columns")
+        log.info(f"✅ Loaded {len(data)} rows with {len(data.columns)} columns")
         return data
     except FileNotFoundError:
-        raise FileNotFoundError(f"Input file not found: {input_file}")
+        error_msg = f"Input file not found: {input_file}"
+        log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+        raise FileNotFoundError(error_msg)
     except Exception as e:
-        raise Exception(f"Error loading data: {e}")
+        error_msg = f"Error loading data: {e}"
+        log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+        raise Exception(error_msg)
 
 
 def convert_timestamp_to_datetime(data: pd.DataFrame, time_column: str) -> pd.DataFrame:
@@ -67,7 +76,9 @@ def convert_timestamp_to_datetime(data: pd.DataFrame, time_column: str) -> pd.Da
         pd.DataFrame: Data with converted datetime column
     """
     if time_column not in data.columns:
-        raise ValueError(f"Time column '{time_column}' not found in data")
+        error_msg = f"Time column '{time_column}' not found in data"
+        log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+        raise ValueError(error_msg)
     
     # Create a copy to avoid modifying original data
     data_copy = data.copy()
@@ -78,8 +89,8 @@ def convert_timestamp_to_datetime(data: pd.DataFrame, time_column: str) -> pd.Da
     # Sort by datetime
     data_copy = data_copy.sort_values('datetime').reset_index(drop=True)
     
-    print(f"✅ Converted {time_column} to datetime and sorted data")
-    print(f"📅 Time range: {data_copy['datetime'].min()} to {data_copy['datetime'].max()}")
+    log.info(f"✅ Converted {time_column} to datetime and sorted data")
+    log.info(f"📅 Time range: {data_copy['datetime'].min()} to {data_copy['datetime'].max()}")
     
     return data_copy
 
@@ -95,7 +106,9 @@ def calculate_time_interval(data: pd.DataFrame) -> pd.Timedelta:
         pd.Timedelta: Time interval between rows
     """
     if len(data) < 2:
-        raise ValueError("Need at least 2 rows to calculate time interval")
+        error_msg = "Need at least 2 rows to calculate time interval"
+        log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+        raise ValueError(error_msg)
     
     # Calculate time differences between consecutive rows
     time_diffs = data['datetime'].diff().dropna()
@@ -103,7 +116,7 @@ def calculate_time_interval(data: pd.DataFrame) -> pd.Timedelta:
     # Get the most common interval (mode)
     most_common_interval = time_diffs.mode().iloc[0]
     
-    print(f"⏰ Detected time interval: {most_common_interval}")
+    log.info(f"⏰ Detected time interval: {most_common_interval}")
     return most_common_interval
 
 
@@ -118,20 +131,20 @@ def analyze_gaps(data: pd.DataFrame, time_column: str) -> Dict:
     Returns:
         Dict: Gap analysis results
     """
-    print("\n🔍 Analyzing gaps in time series data...")
+    log.info("\n🔍 Analyzing gaps in time series data...")
     
     # Get all numeric columns except time columns
     numeric_columns = data.select_dtypes(include=[np.number]).columns.tolist()
     time_related_columns = [time_column, 'datetime']
     features_to_analyze = [col for col in numeric_columns if col not in time_related_columns]
     
-    print(f"📊 Analyzing {len(features_to_analyze)} features: {features_to_analyze[:5]}{'...' if len(features_to_analyze) > 5 else ''}")
+    log.info(f"📊 Analyzing {len(features_to_analyze)} features: {features_to_analyze[:5]}{'...' if len(features_to_analyze) > 5 else ''}")
     
     gap_analysis = {}
     
     # Analyze gaps for each feature
     for feature in features_to_analyze:
-        print(f"  Analyzing gaps for {feature}...")
+        log.info(f"  Analyzing gaps for {feature}...")
         
         # Find gaps (NaN values) in the feature
         gap_values = data[feature].isna()
@@ -181,12 +194,12 @@ def print_gap_summary(gap_analysis: Dict, time_interval: pd.Timedelta = None, is
         time_interval (pd.Timedelta): Time interval between rows (None for irregular data)
         is_regular_interval (bool): Whether the data has regular time intervals
     """
-    print("\n" + "="*80)
-    print("📊 GAP ANALYSIS SUMMARY")
-    print("="*80)
+    log.info("\n" + "="*80)
+    log.info("📊 GAP ANALYSIS SUMMARY")
+    log.info("="*80)
     
     if not gap_analysis:
-        print("No gaps found in any features.")
+        log.info("No gaps found in any features.")
         return
     
     # Create summary DataFrame
@@ -220,104 +233,98 @@ def print_gap_summary(gap_analysis: Dict, time_interval: pd.Timedelta = None, is
     summary_df = pd.DataFrame(summary_data)
     
     # Print summary table
-    print("\nFeature-wise Gap Summary:")
-    print("-" * 80)
-    print(summary_df.to_string(index=False))
+    log.info("\nFeature-wise Gap Summary:")
+    log.info("-" * 80)
+    log.info(summary_df.to_string(index=False))
     
     # Print overall statistics
-    print("\n" + "-" * 80)
-    print("OVERALL STATISTICS:")
-    print("-" * 80)
+    log.info("\n" + "-" * 80)
+    log.info("OVERALL STATISTICS:")
+    log.info("-" * 80)
     
     total_features = len(gap_analysis)
     features_with_gaps = sum(1 for stats in gap_analysis.values() if stats['total_gap_length'] > 0)
     
-    print(f"Total features analyzed: {total_features}")
-    print(f"Features with gaps: {features_with_gaps}")
-    print(f"Features without gaps: {total_features - features_with_gaps}")
+    log.info(f"Total features analyzed: {total_features}")
+    log.info(f"Features with gaps: {features_with_gaps}")
+    log.info(f"Features without gaps: {total_features - features_with_gaps}")
     
     if features_with_gaps > 0:
         # Find features with largest gap length
         max_gap_length_feature = max(gap_analysis.items(), key=lambda x: x[1]['total_gap_length'])
-        print(f"\nFeature with largest gap length: {max_gap_length_feature[0]} ({max_gap_length_feature[1]['total_gap_length']} total gap length, {max_gap_length_feature[1]['gap_percentage']:.2f}%)")
+        log.info(f"\nFeature with largest gap length: {max_gap_length_feature[0]} ({max_gap_length_feature[1]['total_gap_length']} total gap length, {max_gap_length_feature[1]['gap_percentage']:.2f}%)")
         
         # Find features with longest gaps
         max_gap_feature = max(gap_analysis.items(), key=lambda x: x[1]['max_gap_length'])
         if is_regular_interval and time_interval:
             max_gap_days = max_gap_feature[1]['max_gap_length'] * interval_days
-            print(f"Feature with longest gap: {max_gap_feature[0]} ({max_gap_days:.1f} days)")
+            log.info(f"Feature with longest gap: {max_gap_feature[0]} ({max_gap_days:.1f} days)")
         else:
-            print(f"Feature with longest gap: {max_gap_feature[0]} ({max_gap_feature[1]['max_gap_length']} rows)")
+            log.info(f"Feature with longest gap: {max_gap_feature[0]} ({max_gap_feature[1]['max_gap_length']} rows)")
         
         # Calculate average gap percentage across all features
         avg_gap_percentage = np.mean([stats['gap_percentage'] for stats in gap_analysis.values()])
-        print(f"Average gap percentage across all features: {avg_gap_percentage:.2f}%")
+        log.info(f"Average gap percentage across all features: {avg_gap_percentage:.2f}%")
     
-    print("\n" + "="*80)
+    log.info("\n" + "="*80)
 
 
-def save_gap_analysis_report(gap_analysis: Dict, output_directory: str, time_interval: pd.Timedelta, input_file: str, is_regular_interval: bool = True, report_suffix: str = "") -> None:
+def save_gap_analysis_report(gap_analysis: Dict, time_interval: pd.Timedelta, report_name: str, is_regular_interval: bool = True) -> None:
     """
-    Save detailed gap analysis report to file.
+    Log detailed gap analysis report.
     
     Args:
         gap_analysis (Dict): Gap analysis results
-        output_directory (str): Output directory path
         time_interval (pd.Timedelta): Time interval between rows (None for irregular data)
-        input_file (str): Input file path for generating report name
+        report_name (str): Name of the report (e.g., "data_before_cleaning", "data_after_cleaning")
         is_regular_interval (bool): Whether the data has regular time intervals
-        report_suffix (str): Suffix to add to report filename (e.g., "_before_cleaning", "_after_cleaning")
     """
-    # Generate report filename based on input file name
-    input_filename = os.path.splitext(os.path.basename(input_file))[0]
-    report_filename = f"{input_filename}_report{report_suffix}.txt"
-    output_path = os.path.join(output_directory, report_filename)
     
     try:
-        with open(output_path, 'w') as f:
-            f.write("GAP ANALYSIS REPORT\n")
-            f.write("=" * 50 + "\n")
-            f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            f.write(f"Time interval: {time_interval}\n")
-            if report_suffix:
-                f.write(f"Report type: {report_suffix.replace('_', ' ').title()}\n")
-            f.write("\n")
-            
-            for feature, stats in gap_analysis.items():
-                f.write(f"Feature: {feature}\n")
-                f.write("-" * 30 + "\n")
-                f.write(f"Total gap length: {stats['total_gap_length']}\n")
-                f.write(f"Gap percentage: {stats['gap_percentage']:.2f}%\n")
-                f.write(f"Number of gaps: {stats['gaps']}\n")
-                
-                if is_regular_interval and time_interval:
-                    # Convert to days for regular intervals
-                    interval_days = time_interval.total_seconds() / (24 * 3600)
-                    max_gap_days = stats['max_gap_length'] * interval_days
-                    avg_gap_days = stats['avg_gap_length'] * interval_days
-                    
-                    f.write(f"Maximum gap length: {stats['max_gap_length']} intervals ({max_gap_days:.1f} days)\n")
-                    f.write(f"Average gap length: {stats['avg_gap_length']:.2f} intervals ({avg_gap_days:.1f} days)\n")
-                else:
-                    # Show in rows for irregular intervals
-                    f.write(f"Maximum gap length: {stats['max_gap_length']} rows\n")
-                    f.write(f"Average gap length: {stats['avg_gap_length']:.2f} rows\n")
-                
-                if stats['gaps'] > 0:
-                    f.write("Gaps:\n")
-                    for i, gap in enumerate(stats['gaps_detail'][:10]):  # Show first 10 gaps
-                        if is_regular_interval and time_interval:
-                            gap_days = len(gap) * interval_days
-                            f.write(f"  Gap {i+1}: {len(gap)} consecutive gaps ({gap_days:.1f} days) starting at index {gap[0]}\n")
-                        else:
-                            f.write(f"  Gap {i+1}: {len(gap)} consecutive gaps ({len(gap)} rows) starting at index {gap[0]}\n")
-                    if len(stats['gaps_detail']) > 10:
-                        f.write(f"  ... and {len(stats['gaps_detail']) - 10} more gaps\n")
-                f.write("\n")
+        # Log the report header
+        log.info("GAP ANALYSIS REPORT")
+        log.info("=" * 50)
+        log.info(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        log.info(f"Time interval: {time_interval}")
+        log.info(f"Report: {report_name}")
+        log.info("")
         
-        print(f"✅ Gap analysis report saved to {output_path}")
+        # Log each feature's gap analysis
+        for feature, stats in gap_analysis.items():
+            log.info(f"Feature: {feature}")
+            log.info("-" * 30)
+            log.info(f"Total gap length: {stats['total_gap_length']}")
+            log.info(f"Gap percentage: {stats['gap_percentage']:.2f}%")
+            log.info(f"Number of gaps: {stats['gaps']}")
+            
+            if is_regular_interval and time_interval:
+                # Convert to days for regular intervals
+                interval_days = time_interval.total_seconds() / (24 * 3600)
+                max_gap_days = stats['max_gap_length'] * interval_days
+                avg_gap_days = stats['avg_gap_length'] * interval_days
+                
+                log.info(f"Maximum gap length: {stats['max_gap_length']} intervals ({max_gap_days:.1f} days)")
+                log.info(f"Average gap length: {stats['avg_gap_length']:.2f} intervals ({avg_gap_days:.1f} days)")
+            else:
+                # Show in rows for irregular intervals
+                log.info(f"Maximum gap length: {stats['max_gap_length']} rows")
+                log.info(f"Average gap length: {stats['avg_gap_length']:.2f} rows")
+            
+            if stats['gaps'] > 0:
+                log.info("Gaps:")
+                for i, gap in enumerate(stats['gaps_detail'][:10]):  # Show first 10 gaps
+                    if is_regular_interval and time_interval:
+                        gap_days = len(gap) * interval_days
+                        log.info(f"  Gap {i+1}: {len(gap)} consecutive gaps ({gap_days:.1f} days) starting at index {gap[0]}")
+                    else:
+                        log.info(f"  Gap {i+1}: {len(gap)} consecutive gaps ({len(gap)} rows) starting at index {gap[0]}")
+                if len(stats['gaps_detail']) > 10:
+                    log.info(f"  ... and {len(stats['gaps_detail']) - 10} more gaps")
+            log.info("")
+        
+        log.info(f"✅ Gap analysis report logged for {report_name}")
     except Exception as e:
-        print(f"❌ Error saving gap analysis report: {e}")
+        log.error(f"❌ Error logging gap analysis report: {e}")
 
 
 def clean_data(data: pd.DataFrame, time_column: str) -> pd.DataFrame:
@@ -331,7 +338,7 @@ def clean_data(data: pd.DataFrame, time_column: str) -> pd.DataFrame:
     Returns:
         pd.DataFrame: Cleaned data
     """
-    print("\n🧹 Starting data cleaning process...")
+    log.info("\n🧹 Starting data cleaning process...")
     
     # Create a copy to avoid modifying original data
     cleaned_data = data.copy()
@@ -341,12 +348,12 @@ def clean_data(data: pd.DataFrame, time_column: str) -> pd.DataFrame:
     time_related_columns = [time_column, 'datetime']
     features_to_clean = [col for col in numeric_columns if col not in time_related_columns]
     
-    print(f"📊 Cleaning {len(features_to_clean)} features: {features_to_clean[:5]}{'...' if len(features_to_clean) > 5 else ''}")
+    log.info(f"📊 Cleaning {len(features_to_clean)} features: {features_to_clean[:5]}{'...' if len(features_to_clean) > 5 else ''}")
     
     total_cleaned_values = 0
     
     for feature in features_to_clean:
-        print(f"  Cleaning {feature}...")
+        log.info(f"  Cleaning {feature}...")
         
         # Get the feature column
         feature_data = cleaned_data[feature]
@@ -355,7 +362,7 @@ def clean_data(data: pd.DataFrame, time_column: str) -> pd.DataFrame:
         missing_before = feature_data.isna().sum()
         
         if missing_before == 0:
-            print(f"    ✅ No missing values found in {feature}")
+            log.info(f"    ✅ No missing values found in {feature}")
             continue
         
         # Apply cleaning strategy:
@@ -386,10 +393,10 @@ def clean_data(data: pd.DataFrame, time_column: str) -> pd.DataFrame:
         missing_after = cleaned_data[feature].isna().sum()
         cleaned_count = missing_before - missing_after
         
-        print(f"    ✅ Cleaned {cleaned_count} missing values in {feature}")
+        log.info(f"    ✅ Cleaned {cleaned_count} missing values in {feature}")
         total_cleaned_values += cleaned_count
     
-    print(f"\n🎉 Data cleaning completed! Total values cleaned: {total_cleaned_values}")
+    log.info(f"\n🎉 Data cleaning completed! Total values cleaned: {total_cleaned_values}")
     
     return cleaned_data
 
@@ -411,9 +418,10 @@ def save_cleaned_data(data: pd.DataFrame, output_file: str) -> None:
         
         # Save to parquet
         data_to_save.to_parquet(output_file, index=False)
-        print(f"✅ Cleaned data saved to {output_file}")
+        log.info(f"✅ Cleaned data saved to {output_file}")
     except Exception as e:
-        print(f"❌ Error saving cleaned data: {e}")
+        log.error(f"❌ Error saving cleaned data: {e}")
+        raise e
 
 
 def process_cleaning(input_file: str, output_directory: str, time_column: str, pipeline_stage: str) -> Tuple[bool, str]:
@@ -429,10 +437,15 @@ def process_cleaning(input_file: str, output_directory: str, time_column: str, p
         Tuple[bool, str]: (True if successful, output file path) or (False, None)
     """
     try:
-        print(f"\n🔄 Processing file: {input_file}")
+        log.info(f"\n🔄 Processing file: {input_file}")
         
         # Load data
         data = load_data(input_file)
+
+        log.info(f"Data shape: {data.shape}")
+        log.info(f"Data columns: {data.columns}")
+        log.info(f"Data types: {data.dtypes}")
+        log.info(f"Data memory usage: {data.memory_usage(deep=True).sum() / 1024**2:.2f} MB")
         
         # Convert timestamp to datetime
         data = convert_timestamp_to_datetime(data, time_column)
@@ -447,41 +460,45 @@ def process_cleaning(input_file: str, output_directory: str, time_column: str, p
             time_interval = calculate_time_interval(data)
         
         # STEP 1: Generate report before cleaning
-        print("\n📊 STEP 1: Generating report before cleaning...")
+        log.info("\n📊 STEP 1: Generating report before cleaning...")
         gap_analysis_before = analyze_gaps(data, time_column)
         print_gap_summary(gap_analysis_before, time_interval, is_regular_interval)
         
         # Create output directory if it doesn't exist
         os.makedirs(output_directory, exist_ok=True)
         
+        # Generate report name for before cleaning
+        input_filename = os.path.splitext(os.path.basename(input_file))[0]
+        report_name_before = f"{input_filename}_before_cleaning"
+        
         # Save detailed report before cleaning
-        save_gap_analysis_report(gap_analysis_before, output_directory, time_interval, input_file, is_regular_interval, "_before_cleaning")
+        save_gap_analysis_report(gap_analysis_before, time_interval, report_name_before, is_regular_interval)
         
         # STEP 2: Clean the data
-        print("\n🧹 STEP 2: Cleaning the data...")
+        log.info("\n🧹 STEP 2: Cleaning the data...")
         cleaned_data = clean_data(data, time_column)
         
         # STEP 3: Generate report after cleaning
-        print("\n📊 STEP 3: Generating report after cleaning...")
+        log.info("\n📊 STEP 3: Generating report after cleaning...")
         gap_analysis_after = analyze_gaps(cleaned_data, time_column)
         print_gap_summary(gap_analysis_after, time_interval, is_regular_interval)
         
+        # Generate report name for after cleaning
+        report_name_after = f"{input_filename}_after_cleaning"
+        
         # Save detailed report after cleaning
-        save_gap_analysis_report(gap_analysis_after, output_directory, time_interval, input_file, is_regular_interval, "_after_cleaning")
+        save_gap_analysis_report(gap_analysis_after, time_interval, report_name_after, is_regular_interval)
         
-        # STEP 4: Save cleaned data
-        print("\n💾 STEP 4: Saving cleaned data...")
-        input_filename = os.path.splitext(os.path.basename(input_file))[0]
-        output_filename = f"{input_filename}_cleaned.parquet"
-        output_file = os.path.join(output_directory, output_filename)
-        save_cleaned_data(cleaned_data, output_file)
+        # STEP 4: Save cleaned data (replace original file)
+        log.info("\n💾 STEP 4: Saving cleaned data...")
+        save_cleaned_data(cleaned_data, input_file)
         
-        print(f"✅ Successfully completed cleaning process for {input_file}")
-        return True, output_file
+        log.info(f"✅ Successfully completed cleaning process for {input_file}")
+        return True, input_file
         
     except Exception as e:
-        print(f"❌ Error processing {input_file}: {e}")
-        return False, None
+        log.error(f"❌ Error processing {input_file}: {e}")
+        raise e
 
 
 def run_clean(config):
@@ -492,8 +509,8 @@ def run_clean(config):
         config (Dict[str, Any]): Configuration dictionary containing pipeline stage and stage-specific settings
     """
     try:
-        print("🧹 Data Cleaning Tool")
-        print("=" * 50)
+        log.info("🧹 Data Cleaning Tool")
+        log.info("=" * 50)
         
         # Extract configuration values
         pipeline_stage = config['pipeline_stage']
@@ -503,37 +520,38 @@ def run_clean(config):
         output_directory = stage_config['output_directory']
         time_column = stage_config['time_column']
         
-        print(f"🔧 Pipeline stage: {pipeline_stage}")
-        print(f"📁 Input files: {len(input_files)} files to process")
-        print(f"📁 Output directory: {output_directory}")
-        print(f"⏰ Time column: {time_column}")
+        log.info(f"🔧 Pipeline stage: {pipeline_stage}")
+        log.info(f"📁 Input files: {len(input_files)} files to process")
+        log.info(f"📁 Output directory: {output_directory}")
+        log.info(f"⏰ Time column: {time_column}")
         
         # Process each input file independently
         successful_files = 0
         total_files = len(input_files)
         
         for input_file in input_files:
-            print(f"\n{'='*60}")
+            log.info(f"\n{'='*60}")
             success, output_file = process_cleaning(input_file, output_directory, time_column, pipeline_stage)
             if success:
                 successful_files += 1
         
         # Display final summary
-        print(f"\n🎯 Cleaning Process Summary:")
-        print("=" * 50)
-        print(f"📊 Total files: {total_files}")
-        print(f"✅ Successful: {successful_files}")
-        print(f"❌ Failed: {total_files - successful_files}")
-        print(f"📁 Output directory: {output_directory}")
+        log.info(f"\n🎯 Cleaning Process Summary:")
+        log.info("=" * 50)
+        log.info(f"📊 Total files: {total_files}")
+        log.info(f"✅ Successful: {successful_files}")
+        log.info(f"❌ Failed: {total_files - successful_files}")
+        log.info(f"📁 Output directory: {output_directory}")
         
         if successful_files == total_files:
-            print("🎉 All files processed successfully!")
+            log.info("🎉 All files processed successfully!")
         elif successful_files > 0:
-            print(f"⚠️  {total_files - successful_files} files failed to process")
+            log.warning(f"⚠️  {total_files - successful_files} files failed to process")
         else:
-            print("❌ All files failed to process")
-        print("=" * 50)
+            log.error("❌ All files failed to process")
+        log.info("=" * 50)
         
     except Exception as e:
-        print(f"❌ Fatal Error: {e}")
+        error_msg = f"Fatal Error: {e}"
+        log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
         raise 

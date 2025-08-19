@@ -15,6 +15,7 @@ This design supports both single-output (current) and multi-output (future) aggr
 import numpy as np
 import pandas as pd
 from typing import Union, List, Optional, Dict
+from logger import log
 
 def mean(start_time: pd.Timestamp, duration: pd.Timedelta, data: pd.DataFrame) -> Dict[str, float]:
     """
@@ -32,7 +33,9 @@ def mean(start_time: pd.Timestamp, duration: pd.Timedelta, data: pd.DataFrame) -
     required_columns = ['askPrice', 'bidPrice']
     missing_columns = [col for col in required_columns if col not in data.columns]
     if missing_columns:
-        raise ValueError(f"Missing required columns for mean aggregator: {missing_columns}")
+        error_msg = f"Missing required columns for mean aggregator: {missing_columns}"
+        log.error(error_msg)
+        raise ValueError(error_msg)
     
     if data.empty:
         return {'mean': np.nan}
@@ -57,7 +60,9 @@ def high(start_time: pd.Timestamp, duration: pd.Timedelta, data: pd.DataFrame) -
     required_columns = ['askPrice']
     missing_columns = [col for col in required_columns if col not in data.columns]
     if missing_columns:
-        raise ValueError(f"Missing required columns for high aggregator: {missing_columns}")
+        error_msg = f"Missing required columns for high aggregator: {missing_columns}"
+        log.error(error_msg)
+        raise ValueError(error_msg)
     
     if data.empty:
         return {'high': np.nan}
@@ -80,7 +85,9 @@ def low(start_time: pd.Timestamp, duration: pd.Timedelta, data: pd.DataFrame) ->
     required_columns = ['bidPrice']
     missing_columns = [col for col in required_columns if col not in data.columns]
     if missing_columns:
-        raise ValueError(f"Missing required columns for low aggregator: {missing_columns}")
+        error_msg = f"Missing required columns for low aggregator: {missing_columns}"
+        log.error(error_msg)
+        raise ValueError(error_msg)
     
     if data.empty:
         return {'low': np.nan}
@@ -103,7 +110,9 @@ def volume(start_time: pd.Timestamp, duration: pd.Timedelta, data: pd.DataFrame)
     required_columns = ['askVolume', 'bidVolume']
     missing_columns = [col for col in required_columns if col not in data.columns]
     if missing_columns:
-        raise ValueError(f"Missing required columns for volume aggregator: {missing_columns}")
+        error_msg = f"Missing required columns for volume aggregator: {missing_columns}"
+        log.error(error_msg)
+        raise ValueError(error_msg)
     
     if data.empty:
         return {'volume': np.nan}
@@ -128,7 +137,9 @@ def volatility(start_time: pd.Timestamp, duration: pd.Timedelta, data: pd.DataFr
     required_columns = ['askPrice', 'bidPrice']
     missing_columns = [col for col in required_columns if col not in data.columns]
     if missing_columns:
-        raise ValueError(f"Missing required columns for volatility aggregator: {missing_columns}")
+        error_msg = f"Missing required columns for volatility aggregator: {missing_columns}"
+        log.error(error_msg)
+        raise ValueError(error_msg)
     
     if data.empty or len(data) < 2:
         return {'volatility': np.nan}
@@ -157,7 +168,9 @@ def spread(start_time: pd.Timestamp, duration: pd.Timedelta, data: pd.DataFrame)
     required_columns = ['askPrice', 'bidPrice']
     missing_columns = [col for col in required_columns if col not in data.columns]
     if missing_columns:
-        raise ValueError(f"Missing required columns for spread aggregator: {missing_columns}")
+        error_msg = f"Missing required columns for spread aggregator: {missing_columns}"
+        log.error(error_msg)
+        raise ValueError(error_msg)
     
     if data.empty:
         return {'spread': np.nan}
@@ -166,7 +179,7 @@ def spread(start_time: pd.Timestamp, duration: pd.Timedelta, data: pd.DataFrame)
     spread = data['askPrice'] - data['bidPrice']
     return {'spread': spread.mean()}
 
-def open_price(start_time: pd.Timestamp, duration: pd.Timedelta, data: pd.DataFrame) -> Dict[str, float]:
+def open(start_time: pd.Timestamp, duration: pd.Timedelta, data: pd.DataFrame) -> Dict[str, float]:
     """
     Calculate the opening mid-price for a time window.
     
@@ -182,17 +195,19 @@ def open_price(start_time: pd.Timestamp, duration: pd.Timedelta, data: pd.DataFr
     required_columns = ['askPrice', 'bidPrice']
     missing_columns = [col for col in required_columns if col not in data.columns]
     if missing_columns:
-        raise ValueError(f"Missing required columns for open_price aggregator: {missing_columns}")
+        error_msg = f"Missing required columns for open aggregator: {missing_columns}"
+        log.error(error_msg)
+        raise ValueError(error_msg)
     
     if data.empty:
         return {'open': np.nan}
     
     # Get the first tick's mid price
     first_tick = data.iloc[0]
-    open_price = (first_tick['askPrice'] + first_tick['bidPrice']) / 2
-    return {'open': open_price}
+    open = (first_tick['askPrice'] + first_tick['bidPrice']) / 2
+    return {'open': open}
 
-def close_price(start_time: pd.Timestamp, duration: pd.Timedelta, data: pd.DataFrame) -> Dict[str, float]:
+def close(start_time: pd.Timestamp, duration: pd.Timedelta, data: pd.DataFrame) -> Dict[str, float]:
     """
     Calculate the closing mid-price for a time window.
     
@@ -208,15 +223,17 @@ def close_price(start_time: pd.Timestamp, duration: pd.Timedelta, data: pd.DataF
     required_columns = ['askPrice', 'bidPrice']
     missing_columns = [col for col in required_columns if col not in data.columns]
     if missing_columns:
-        raise ValueError(f"Missing required columns for close_price aggregator: {missing_columns}")
+        error_msg = f"Missing required columns for close aggregator: {missing_columns}"
+        log.error(error_msg)
+        raise ValueError(error_msg)
     
     if data.empty:
         return {'close': np.nan}
     
     # Get the last tick's mid price
     last_tick = data.iloc[-1]
-    close_price = (last_tick['askPrice'] + last_tick['bidPrice']) / 2
-    return {'close': close_price}
+    close = (last_tick['askPrice'] + last_tick['bidPrice']) / 2
+    return {'close': close}
 
 def tick_count(start_time: pd.Timestamp, duration: pd.Timedelta, data: pd.DataFrame) -> Dict[str, int]:
     """
@@ -235,6 +252,98 @@ def tick_count(start_time: pd.Timestamp, duration: pd.Timedelta, data: pd.DataFr
     
     return {'tick_count': len(data)}
 
+def ofi(start_time: pd.Timestamp, duration: pd.Timedelta, data: pd.DataFrame) -> Dict[str, float]:
+    """
+    Calculate the Order Flow Imbalance (OFI) for a time window.
+    
+    OFI is calculated by classifying each tick based on price movement, 
+    assigning a direction (+1 for buy, -1 for sell), and summing the 
+    product of direction and volume over the interval.
+    
+    Args:
+        start_time: Start time of the window
+        duration: Duration of the window
+        data: DataFrame containing tick data (can be empty)
+        
+    Returns:
+        Dict[str, float]: Dictionary with 'ofi' key containing the OFI value or np.nan if no data
+    """
+    # Validate required columns
+    required_columns = ['askPrice', 'bidPrice', 'askVolume', 'bidVolume']
+    missing_columns = [col for col in required_columns if col not in data.columns]
+    if missing_columns:
+        error_msg = f"Missing required columns for OFI aggregator: {missing_columns}"
+        log.error(error_msg)
+        raise ValueError(error_msg)
+    
+    if data.empty or len(data) < 2:
+        return {'ofi': np.nan}
+
+    # Calculate mean price and volume for each tick
+    data = data.copy()
+    data['price'] = (data['askPrice'] + data['bidPrice']) / 2
+    data['volume'] = data['askVolume'] + data['bidVolume']
+
+    # Initialize tick direction array
+    tick_direction = np.zeros(len(data), dtype=int)
+
+    # Determine direction for each tick
+    for i in range(1, len(data)):
+        if data['price'].iloc[i] > data['price'].iloc[i - 1]:
+            tick_direction[i] = 1  # Buy
+        elif data['price'].iloc[i] < data['price'].iloc[i - 1]:
+            tick_direction[i] = -1  # Sell
+        else:
+            tick_direction[i] = tick_direction[i - 1]  # Use previous direction if price is unchanged
+
+    # Calculate OFI as the sum of (tick_direction * volume)
+    data['tick_direction'] = tick_direction
+    ofi_value = (data['tick_direction'] * data['volume']).sum()
+
+    return {'ofi': ofi_value}
+
+def vwap(start_time: pd.Timestamp, duration: pd.Timedelta, data: pd.DataFrame) -> Dict[str, float]:
+    """
+    Calculate the Volume Weighted Average Price (VWAP) for a time window.
+    
+    VWAP is calculated as the sum of (price * volume) divided by the total volume.
+    Price is the mid-price: (askPrice + bidPrice) / 2
+    Volume is the sum of askVolume and bidVolume per tick.
+    
+    Args:
+        start_time: Start time of the window
+        duration: Duration of the window
+        data: DataFrame containing tick data (can be empty)
+        
+    Returns:
+        Dict[str, float]: Dictionary with 'vwap' key containing the VWAP value or np.nan if no data
+    """
+    # Validate required columns
+    required_columns = ['askPrice', 'bidPrice', 'askVolume', 'bidVolume']
+    missing_columns = [col for col in required_columns if col not in data.columns]
+    if missing_columns:
+        error_msg = f"Missing required columns for VWAP aggregator: {missing_columns}"
+        log.error(error_msg)
+        raise ValueError(error_msg)
+
+    if data.empty:
+        return {'vwap': np.nan}
+
+    # Calculate mid price and total volume per tick
+    data = data.copy()
+    data['price'] = (data['askPrice'] + data['bidPrice']) / 2
+    data['volume'] = data['askVolume'] + data['bidVolume']
+
+    # Compute VWAP
+    total_volume = data['volume'].sum()
+    if total_volume == 0:
+        return {'vwap': np.nan}
+    
+    weighted_price_sum = (data['price'] * data['volume']).sum()
+    vwap_value = weighted_price_sum / total_volume
+
+    return {'vwap': vwap_value}
+
 
 # Example of a future multi-output aggregator:
 # def price_stats(start_time: pd.Timestamp, duration: pd.Timedelta, data: pd.DataFrame) -> Dict[str, float]:
@@ -248,7 +357,9 @@ def tick_count(start_time: pd.Timestamp, duration: pd.Timedelta, data: pd.DataFr
 #     required_columns = ['askPrice', 'bidPrice']
 #     missing_columns = [col for col in required_columns if col not in data.columns]
 #     if missing_columns:
-#         raise ValueError(f"Missing required columns for price_stats aggregator: {missing_columns}")
+#         error_msg = f"Missing required columns for price_stats aggregator: {missing_columns}"
+#         log.error(error_msg)
+#         raise ValueError(error_msg)
 #     
 #     if data.empty:
 #         return {

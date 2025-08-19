@@ -13,8 +13,11 @@ from typing import Dict, List, Any
 from merge import run_merge
 from clean import run_clean
 from aggregate import run_aggregate
-from augment import run_augment
+from split import run_split
+from winsorize import run_winsorize
+from featurize import run_featurize
 from visualize import run_visualize
+from logger import log
 
 
 def load_pipeline_config(config_file="pipeline.yaml"):
@@ -32,9 +35,13 @@ def load_pipeline_config(config_file="pipeline.yaml"):
             config = yaml.safe_load(file)
         return config
     except FileNotFoundError:
-        raise FileNotFoundError(f"Pipeline configuration file '{config_file}' not found")
+        error_msg = f"Pipeline configuration file '{config_file}' not found"
+        log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+        raise FileNotFoundError(error_msg)
     except yaml.YAMLError as e:
-        raise yaml.YAMLError(f"Error parsing pipeline YAML file: {e}")
+        error_msg = f"Error parsing pipeline YAML file: {e}"
+        log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+        raise yaml.YAMLError(error_msg)
 
 def get_expected_input_files(step_name: str, pipeline_config: Dict[str, Any] = None):
     """
@@ -47,14 +54,18 @@ def get_expected_input_files(step_name: str, pipeline_config: Dict[str, Any] = N
     Returns:
         List[str]: List of expected input file paths
     """
+    # Check if pipeline_config is required and provided
+    steps_requiring_config = ["clean_ticks", "aggregate", "split", "winsorize", "clean_aggregated", "featurize", "clean_featurized", "visualize"]
+    if step_name in steps_requiring_config and pipeline_config is None:
+        error_msg = f"Pipeline config is required for {step_name} step"
+        log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+        raise ValueError(error_msg)
+    
     if step_name == "merge":
         # Merge doesn't have input files from previous steps
         return None
     elif step_name == "clean_ticks":
         # Clean ticks expects <symbol>_ticks.parquet files where symbols come from merge section
-        if pipeline_config is None:
-            raise ValueError("Pipeline config is required for clean_ticks step to determine symbols")
-        
         symbols = [symbol_config['symbol'] for symbol_config in pipeline_config['merge']['symbols']]
         files = []
         missing_files = []
@@ -66,35 +77,33 @@ def get_expected_input_files(step_name: str, pipeline_config: Dict[str, Any] = N
                 missing_files.append(file_path)
         
         if missing_files:
-            raise FileNotFoundError(f"Required input files for clean_ticks step not found: {missing_files}")
+            error_msg = f"Required input files for clean_ticks step not found: {missing_files}"
+            log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+            raise FileNotFoundError(error_msg)
         
         files.sort()
         return files
     elif step_name == "aggregate":
-        # Aggregate expects <symbol>_ticks_cleaned.parquet files where symbols come from merge section
-        if pipeline_config is None:
-            raise ValueError("Pipeline config is required for aggregate step to determine symbols")
-        
+        # Aggregate expects <symbol>_ticks.parquet files where symbols come from merge section
         symbols = [symbol_config['symbol'] for symbol_config in pipeline_config['merge']['symbols']]
         files = []
         missing_files = []
         for symbol in symbols:
-            file_path = os.path.join(pipeline_config['output_directory'], f"{symbol}_ticks_cleaned.parquet")
+            file_path = os.path.join(pipeline_config['output_directory'], f"{symbol}_ticks.parquet")
             if os.path.exists(file_path):
                 files.append(file_path)
             else:
                 missing_files.append(file_path)
         
         if missing_files:
-            raise FileNotFoundError(f"Required input files for aggregate step not found: {missing_files}")
+            error_msg = f"Required input files for aggregate step not found: {missing_files}"
+            log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+            raise FileNotFoundError(error_msg)
         
         files.sort()
         return files
-    elif step_name == "clean_aggregated":
-        # Clean aggregated expects <time_freq>_<agg_output_filename>.parquet files
-        if pipeline_config is None:
-            raise ValueError("Pipeline config is required for clean_aggregated step to determine output filename")
-        
+    elif step_name == "split":
+        # Split expects <time_freq>_<agg_output_filename>.parquet files
         time_window = pipeline_config['aggregate']['time_window']
         output_filename = pipeline_config['aggregate']['output_filename']
         file_path = os.path.join(pipeline_config['output_directory'], f"{time_window}_{output_filename}.parquet")
@@ -102,58 +111,133 @@ def get_expected_input_files(step_name: str, pipeline_config: Dict[str, Any] = N
         if os.path.exists(file_path):
             return file_path
         else:
-            raise FileNotFoundError(f"Required input file for clean_aggregated step not found: {file_path}")
-    elif step_name == "augment":
-        # Augment expects <time_freq>_<agg_output_filename>_cleaned.parquet files
-        if pipeline_config is None:
-            raise ValueError("Pipeline config is required for augment step to determine output filename")
-        
+            error_msg = f"Required input file for split step not found: {file_path}"
+            log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+            raise FileNotFoundError(error_msg)
+    elif step_name == "winsorize":
+        # Winsorize expects <time_freq>_<agg_output_filename>_train.parquet, _val.parquet, _test.parquet files
         time_window = pipeline_config['aggregate']['time_window']
         output_filename = pipeline_config['aggregate']['output_filename']
-        file_path = os.path.join(pipeline_config['output_directory'], f"{time_window}_{output_filename}_cleaned.parquet")
+        base_filename = f"{time_window}_{output_filename}"
         
-        if os.path.exists(file_path):
-            return [file_path]  # Return as list since augment expects list of files
-        else:
-            raise FileNotFoundError(f"Required input file for augment step not found: {file_path}")
-    elif step_name == "clean_augmented":
-        # Clean augmented expects <time_freq>_<agg_output_filename>_cleaned_<output_filename>_augmented.parquet files
-        if pipeline_config is None:
-            raise ValueError("Pipeline config is required for clean_augmented step to determine output filename")
+        files = []
+        missing_files = []
+        for suffix in ['_train', '_val', '_test']:
+            file_path = os.path.join(pipeline_config['output_directory'], f"{base_filename}{suffix}.parquet")
+            if os.path.exists(file_path):
+                files.append(file_path)
+            else:
+                missing_files.append(file_path)
         
+        if missing_files:
+            error_msg = f"Required input files for winsorize step not found: {missing_files}"
+            log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+            raise FileNotFoundError(error_msg)
+        
+        files.sort()
+        return files
+    elif step_name == "clean_aggregated":
+        # Clean aggregated expects <time_freq>_<agg_output_filename>_train.parquet, _val.parquet, _test.parquet files
         time_window = pipeline_config['aggregate']['time_window']
         output_filename = pipeline_config['aggregate']['output_filename']
-        augment_output_filename = pipeline_config['augment'].get('output_filename', None)
+        base_filename = f"{time_window}_{output_filename}"
         
-        if augment_output_filename:
-            file_path = os.path.join(pipeline_config['output_directory'], f"{time_window}_{output_filename}_cleaned_{augment_output_filename}_augmented.parquet")
-        else:
-            file_path = os.path.join(pipeline_config['output_directory'], f"{time_window}_{output_filename}_cleaned_augmented.parquet")
+        files = []
+        missing_files = []
+        for suffix in ['_train', '_val', '_test']:
+            file_path = os.path.join(pipeline_config['output_directory'], f"{base_filename}{suffix}.parquet")
+            if os.path.exists(file_path):
+                files.append(file_path)
+            else:
+                missing_files.append(file_path)
         
-        if os.path.exists(file_path):
-            return [file_path]  # Return as list since clean expects list of files
-        else:
-            raise FileNotFoundError(f"Required input file for clean_augmented step not found: {file_path}")
+        if missing_files:
+            error_msg = f"Required input files for clean_aggregated step not found: {missing_files}"
+            log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+            raise FileNotFoundError(error_msg)
+        
+        files.sort()
+        return files
+    elif step_name == "featurize":
+        # Featurize expects <time_freq>_<agg_output_filename>_train.parquet, _val.parquet, _test.parquet files
+        time_window = pipeline_config['aggregate']['time_window']
+        output_filename = pipeline_config['aggregate']['output_filename']
+        base_filename = f"{time_window}_{output_filename}"
+        
+        files = []
+        missing_files = []
+        for suffix in ['_train', '_val', '_test']:
+            file_path = os.path.join(pipeline_config['output_directory'], f"{base_filename}{suffix}.parquet")
+            if os.path.exists(file_path):
+                files.append(file_path)
+            else:
+                missing_files.append(file_path)
+        
+        if missing_files:
+            error_msg = f"Required input files for featurize step not found: {missing_files}"
+            log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+            raise FileNotFoundError(error_msg)
+        
+        files.sort()
+        return files
+    elif step_name == "clean_featurized":
+        # Clean featurized expects <time_freq>_<agg_output_filename>_train.parquet, _val.parquet, _test.parquet files
+        time_window = pipeline_config['aggregate']['time_window']
+        output_filename = pipeline_config['aggregate']['output_filename']
+        base_filename = f"{time_window}_{output_filename}"
+        
+        files = []
+        missing_files = []
+        for suffix in ['_train', '_val', '_test']:
+            file_path = os.path.join(pipeline_config['output_directory'], f"{base_filename}{suffix}.parquet")
+            if os.path.exists(file_path):
+                files.append(file_path)
+            else:
+                missing_files.append(file_path)
+            
+            if os.path.exists(file_path):
+                files.append(file_path)
+            else:
+                missing_files.append(file_path)
+        
+        if missing_files:
+            error_msg = f"Required input files for clean_featurized step not found: {missing_files}"
+            log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+            raise FileNotFoundError(error_msg)
+        
+        files.sort()
+        return files
     elif step_name == "visualize":
-        # Visualize expects the final cleaned augmented file
-        if pipeline_config is None:
-            raise ValueError("Pipeline config is required for visualize step to determine output filename")
-        
+        # Visualize expects the final processed files (train/val/test)
         time_window = pipeline_config['aggregate']['time_window']
         output_filename = pipeline_config['aggregate']['output_filename']
-        augment_output_filename = pipeline_config['augment'].get('output_filename', None)
+        base_filename = f"{time_window}_{output_filename}"
         
-        if augment_output_filename:
-            file_path = os.path.join(pipeline_config['output_directory'], f"{time_window}_{output_filename}_cleaned_{augment_output_filename}_augmented_cleaned.parquet")
-        else:
-            file_path = os.path.join(pipeline_config['output_directory'], f"{time_window}_{output_filename}_cleaned_augmented_cleaned.parquet")
+        files = []
+        missing_files = []
+        for suffix in ['_train', '_val', '_test']:
+            file_path = os.path.join(pipeline_config['output_directory'], f"{base_filename}{suffix}.parquet")
+            if os.path.exists(file_path):
+                files.append(file_path)
+            else:
+                missing_files.append(file_path)
+            
+            if os.path.exists(file_path):
+                files.append(file_path)
+            else:
+                missing_files.append(file_path)
         
-        if os.path.exists(file_path):
-            return file_path  # Return as single file path
-        else:
-            raise FileNotFoundError(f"Required input file for visualize step not found: {file_path}")
+        if missing_files:
+            error_msg = f"Required input files for visualize step not found: {missing_files}"
+            log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+            raise FileNotFoundError(error_msg)
+        
+        files.sort()
+        return files
     else:
-        raise ValueError(f"Unknown step: {step_name}")
+        error_msg = f"Unknown step: {step_name}"
+        log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+        raise ValueError(error_msg)
 
 def generate_merge_config(pipeline_config: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -165,7 +249,7 @@ def generate_merge_config(pipeline_config: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         Dict[str, Any]: Generated merge configuration dictionary
     """
-    print("\n🔧 Generating merge configuration...")
+    log.info("\n🔧 Generating merge configuration...")
     
     merge_config = {
         'symbols': pipeline_config['merge']['symbols'],
@@ -186,7 +270,7 @@ def generate_clean_ticks_config(pipeline_config: Dict[str, Any], input_files: Li
     Returns:
         Dict[str, Any]: Generated clean configuration dictionary
     """
-    print("\n🔧 Generating clean ticks configuration...")
+    log.info("\n🔧 Generating clean ticks configuration...")
     
     clean_config = {
         'pipeline_stage': 'ticks',
@@ -213,7 +297,7 @@ def generate_aggregate_config(pipeline_config: Dict[str, Any], input_files: List
     Returns:
         Dict[str, Any]: Generated aggregate configuration dictionary
     """
-    print("\n🔧 Generating aggregate configuration...")
+    log.info("\n🔧 Generating aggregate configuration...")
     
     aggregate_config = {
         'time_window': pipeline_config['aggregate']['time_window'],
@@ -226,73 +310,67 @@ def generate_aggregate_config(pipeline_config: Dict[str, Any], input_files: List
     return aggregate_config
 
 
-def generate_clean_aggregated_config(pipeline_config: Dict[str, Any], input_file: str) -> Dict[str, Any]:
+def generate_split_config(pipeline_config: Dict[str, Any], input_file: str) -> Dict[str, Any]:
     """
-    Generate clean configuration dictionary for aggregated data.
+    Generate split configuration dictionary.
     
     Args:
         pipeline_config (Dict[str, Any]): Main pipeline configuration
         input_file (str): Path to the input file
         
     Returns:
+        Dict[str, Any]: Generated split configuration dictionary
+    """
+    log.info("\n🔧 Generating split configuration...")
+    
+    split_config = {
+        'input_file': input_file,
+        'output_directory': pipeline_config['output_directory'],
+        'split': pipeline_config.get('split', {'train': 0.7, 'val': 0.15, 'test': 0.15})
+    }
+    
+    return split_config
+
+
+def generate_winsorize_config(pipeline_config: Dict[str, Any], input_files: List[str]) -> Dict[str, Any]:
+    """
+    Generate winsorize configuration dictionary.
+    
+    Args:
+        pipeline_config (Dict[str, Any]): Main pipeline configuration
+        input_files (List[str]): List of input file paths
+        
+    Returns:
+        Dict[str, Any]: Generated winsorize configuration dictionary
+    """
+    log.info("\n🔧 Generating winsorize configuration...")
+    
+    winsorize_config = {
+        'input_files': input_files,
+        'output_directory': pipeline_config['output_directory'],
+        'winsorization_configs': pipeline_config.get('winsorize', [])
+    }
+    
+    return winsorize_config
+
+
+def generate_clean_aggregated_config(pipeline_config: Dict[str, Any], input_files: List[str]) -> Dict[str, Any]:
+    """
+    Generate clean configuration dictionary for aggregated data.
+    
+    Args:
+        pipeline_config (Dict[str, Any]): Main pipeline configuration
+        input_files (List[str]): List of input file paths
+        
+    Returns:
         Dict[str, Any]: Generated clean configuration dictionary
     """
-    print("\n🔧 Generating clean aggregated configuration...")
+    log.info("\n🔧 Generating clean aggregated configuration...")
     
     clean_config = {
         'pipeline_stage': 'aggregated',
         'stages': {
             'aggregated': {
-                'input_files': [input_file],
-                'output_directory': pipeline_config['output_directory'],
-                'time_column': 'start_time'
-            }
-        }
-    }
-        
-    return clean_config
-
-
-def generate_augment_config(pipeline_config: Dict[str, Any], input_files: List[str]) -> Dict[str, Any]:
-    """
-    Generate augment configuration dictionary.
-    
-    Args:
-        pipeline_config (Dict[str, Any]): Main pipeline configuration
-        input_files (List[str]): List of input file paths
-        
-    Returns:
-        Dict[str, Any]: Generated augment configuration dictionary
-    """
-    print("\n🔧 Generating augment configuration...")
-    
-    augment_config = {
-        'input_files': input_files,
-        'output_directory': pipeline_config['output_directory'],
-        'augmentations': pipeline_config['augment']['augmentations'],
-        'output_filename': pipeline_config['augment'].get('output_filename', None)
-    }
-    
-    return augment_config
-
-
-def generate_clean_augmented_config(pipeline_config: Dict[str, Any], input_files: List[str]) -> Dict[str, Any]:
-    """
-    Generate clean configuration dictionary for augmented data.
-    
-    Args:
-        pipeline_config (Dict[str, Any]): Main pipeline configuration
-        input_files (List[str]): List of input file paths
-        
-    Returns:
-        Dict[str, Any]: Generated clean configuration dictionary
-    """
-    print("\n🔧 Generating clean augmented configuration...")
-    
-    clean_config = {
-        'pipeline_stage': 'augmented',
-        'stages': {
-            'augmented': {
                 'input_files': input_files,
                 'output_directory': pipeline_config['output_directory'],
                 'time_column': 'start_time'
@@ -303,24 +381,74 @@ def generate_clean_augmented_config(pipeline_config: Dict[str, Any], input_files
     return clean_config
 
 
-def generate_visualize_config(pipeline_config: Dict[str, Any], input_file: str) -> Dict[str, Any]:
+def generate_featurize_config(pipeline_config: Dict[str, Any], input_files: List[str]) -> Dict[str, Any]:
+    """
+    Generate featurize configuration dictionary.
+    
+    Args:
+        pipeline_config (Dict[str, Any]): Main pipeline configuration
+        input_files (List[str]): List of input file paths
+        
+    Returns:
+        Dict[str, Any]: Generated featurize configuration dictionary
+    """
+    log.info("\n🔧 Generating featurize configuration...")
+    
+    featurize_config = {
+        'input_files': input_files,
+        'output_directory': pipeline_config['output_directory'],
+        'featurizers': pipeline_config['featurize']['featurizers'],
+        'output_filename': pipeline_config['featurize'].get('output_filename', None)
+    }
+    
+    return featurize_config
+
+
+def generate_clean_featurized_config(pipeline_config: Dict[str, Any], input_files: List[str]) -> Dict[str, Any]:
+    """
+    Generate clean configuration dictionary for featurized data.
+    
+    Args:
+        pipeline_config (Dict[str, Any]): Main pipeline configuration
+        input_files (List[str]): List of input file paths
+        
+    Returns:
+        Dict[str, Any]: Generated clean configuration dictionary
+    """
+    log.info("\n🔧 Generating clean featurized configuration...")
+    
+    clean_config = {
+        'pipeline_stage': 'featurized',
+        'stages': {
+            'featurized': {
+                'input_files': input_files,
+                'output_directory': pipeline_config['output_directory'],
+                'time_column': 'start_time'
+            }
+        }
+    }
+        
+    return clean_config
+
+
+def generate_visualize_config(pipeline_config: Dict[str, Any], input_files: List[str]) -> Dict[str, Any]:
     """
     Generate visualize configuration dictionary.
     
     Args:
         pipeline_config (Dict[str, Any]): Main pipeline configuration
-        input_file (str): Path to the input file
+        input_files (List[str]): List of input file paths
         
     Returns:
         Dict[str, Any]: Generated visualize configuration dictionary
     """
-    print("\n🔧 Generating visualize configuration...")
+    log.info("\n🔧 Generating visualize configuration...")
     
     visualize_config = {
-        'input_file': input_file,
+        'input_files': input_files,
         'output_directory': pipeline_config['output_directory'],
         'time_column': 'start_time',
-        'split': pipeline_config.get('visualize', {}).get('split', {'train': 0.7, 'val': 0.15, 'test': 0.15})
+        'time_window': pipeline_config['aggregate']['time_window']
     }
     
     return visualize_config
@@ -337,7 +465,7 @@ def validate_and_order_steps(steps_to_execute: List[str]) -> List[str]:
         List[str]: Ordered list of steps to execute
     """
     # Define the correct order - each step depends on the previous one
-    correct_order = ["merge", "clean_ticks", "aggregate", "clean_aggregated", "augment", "clean_augmented", "visualize"]
+    correct_order = ["merge", "clean_ticks", "aggregate", "split", "winsorize", "clean_aggregated", "featurize", "clean_featurized", "visualize"]
     
     # Reorder steps to execute in correct sequence
     ordered_steps = []
@@ -350,11 +478,11 @@ def validate_and_order_steps(steps_to_execute: List[str]) -> List[str]:
         if i > 0:  # Skip first step (merge) as it has no dependencies
             previous_step = correct_order[correct_order.index(step) - 1]
             if previous_step not in ordered_steps:
-                print(f"⚠️  Warning: {step} step depends on {previous_step} but it's not in the execution list.")
-                print(f"   The pipeline will run using previously saved data from {previous_step} step.")
+                log.warning(f"⚠️  Warning: {step} step depends on {previous_step} but it's not in the execution list.")
+                log.warning(f"   The pipeline will run using previously saved data from {previous_step} step.")
     
     if ordered_steps != steps_to_execute:
-        print(f"🔄 Reordering steps to correct sequence: {', '.join(ordered_steps)}")
+        log.info(f"🔄 Reordering steps to correct sequence: {', '.join(ordered_steps)}")
     
     return ordered_steps
 
@@ -369,16 +497,16 @@ def run_pipeline_step(step_name: str, step_function, config):
         config (Dict[str, Any]): Configuration dictionary for the step
     """
     try:
-        print(f"\n{'='*60}")
-        print(f"🚀 Starting {step_name} step...")
-        print(f"{'='*60}")
+        log.info(f"\n{'='*60}", also_print=True)
+        log.info(f"🚀 Starting {step_name} step...", also_print=True)
+        log.info(f"{'='*60}", also_print=True)
         
         step_function(config)
         
-        print(f"✅ {step_name} step completed successfully!")
+        log.info(f"✅ {step_name} step completed successfully!", also_print=True)
         
     except Exception as e:
-        print(f"❌ {step_name} step failed: {e}")
+        log.error(f"❌ {step_name} step failed: {e}")
         raise
 
 
@@ -390,9 +518,9 @@ def run_pipeline(config_file="pipeline.yaml"):
         config_file (str): Path to the pipeline configuration file
     """
     try:
-        print("🎯 DYNAMIC FOREX DATA PROCESSING PIPELINE")
-        print("=" * 60)
-        print(f"📋 Loading pipeline configuration from {config_file}...")
+        log.info("🎯 DYNAMIC FOREX DATA PROCESSING PIPELINE", also_print=True)
+        log.info("=" * 60, also_print=True)
+        log.info(f"📋 Loading pipeline configuration from {config_file}...", also_print=True)
         
         # Load pipeline configuration
         pipeline_config = load_pipeline_config(config_file)
@@ -400,10 +528,10 @@ def run_pipeline(config_file="pipeline.yaml"):
         # Get steps to execute
         steps_to_execute = pipeline_config.get('steps', [])
         if not steps_to_execute:
-            print("❌ No steps specified in pipeline configuration")
+            log.error("❌ No steps specified in pipeline configuration")
             return
         
-        print(f"📋 Steps to execute: {', '.join(steps_to_execute)}")
+        log.info(f"📋 Steps to execute: {', '.join(steps_to_execute)}", also_print=True)
         
         # Validate and reorder steps with dependency warnings
         steps_to_execute = validate_and_order_steps(steps_to_execute)
@@ -414,7 +542,7 @@ def run_pipeline(config_file="pipeline.yaml"):
         
         # Execute each step in order
         for i, step_name in enumerate(steps_to_execute, 1):
-            print(f"\n📊 Pipeline Step {i}/{len(steps_to_execute)}: {step_name.upper()}")
+            log.info(f"\n📊 Pipeline Step {i}/{len(steps_to_execute)}: {step_name.upper()}", also_print=True)
             
             # Get expected input files for this step
             expected_input_files = get_expected_input_files(step_name, pipeline_config)
@@ -427,48 +555,53 @@ def run_pipeline(config_file="pipeline.yaml"):
                     run_pipeline_step(step_name, run_clean, generate_clean_ticks_config(pipeline_config, expected_input_files))
                 elif step_name == "aggregate":
                     run_pipeline_step(step_name, run_aggregate, generate_aggregate_config(pipeline_config, expected_input_files))
+                elif step_name == "split":
+                    run_pipeline_step(step_name, run_split, generate_split_config(pipeline_config, expected_input_files))
+                elif step_name == "winsorize":
+                    run_pipeline_step(step_name, run_winsorize, generate_winsorize_config(pipeline_config, expected_input_files))
                 elif step_name == "clean_aggregated":
                     run_pipeline_step(step_name, run_clean, generate_clean_aggregated_config(pipeline_config, expected_input_files))
-                elif step_name == "augment":
-                    run_pipeline_step(step_name, run_augment, generate_augment_config(pipeline_config, expected_input_files))
-                elif step_name == "clean_augmented":
-                    run_pipeline_step(step_name, run_clean, generate_clean_augmented_config(pipeline_config, expected_input_files))
+                elif step_name == "featurize":
+                    run_pipeline_step(step_name, run_featurize, generate_featurize_config(pipeline_config, expected_input_files))
+                elif step_name == "clean_featurized":
+                    run_pipeline_step(step_name, run_clean, generate_clean_featurized_config(pipeline_config, expected_input_files))
                 elif step_name == "visualize":
                     run_pipeline_step(step_name, run_visualize, generate_visualize_config(pipeline_config, expected_input_files))
                 
                 executed_steps.append(step_name)
                 
             except Exception as e:
-                print(f"❌ Pipeline failed at {step_name} step: {e}")
+                log.error(f"❌ Pipeline failed at {step_name} step: {e}")
                 pipeline_success = False
                 break
         
         # PIPELINE SUMMARY
-        print(f"\n{'='*60}")
-        print("🎯 PIPELINE COMPLETION SUMMARY")
-        print(f"{'='*60}")
+        log.info(f"\n{'='*60}", also_print=True)
+        log.info("🎯 PIPELINE COMPLETION SUMMARY", also_print=True)
+        log.info(f"{'='*60}", also_print=True)
         
         if pipeline_success:
-            print("✅ All specified steps completed successfully!")
-            print(f"📊 Steps executed: {len(executed_steps)}/{len(steps_to_execute)}")
-            print(f"📋 Executed steps: {', '.join(executed_steps)}")
+            log.info("✅ All specified steps completed successfully!", also_print=True)
+            log.info(f"📊 Steps executed: {len(executed_steps)}/{len(steps_to_execute)}", also_print=True)
+            log.info(f"📋 Executed steps: {', '.join(executed_steps)}", also_print=True)
             
         else:
-            print("❌ Pipeline failed - some steps did not complete successfully")
-            print(f"📊 Steps completed: {len(executed_steps)}/{len(steps_to_execute)}")
+            log.error("❌ Pipeline failed - some steps did not complete successfully", also_print=True)
+            log.info(f"📊 Steps completed: {len(executed_steps)}/{len(steps_to_execute)}", also_print=True)
             if executed_steps:
-                print(f"📋 Completed steps: {', '.join(executed_steps)}")
+                log.info(f"📋 Completed steps: {', '.join(executed_steps)}", also_print=True)
         
-        print(f"{'='*60}")
+        log.info(f"{'='*60}", also_print=True)
         
     except Exception as e:
-        print(f"❌ Pipeline failed with error: {e}")
+        error_msg = f"Pipeline failed with error: {e}"
+        log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
 
 
 def main():
     """Main function to run the pipeline."""
     run_pipeline()
-    print(f"\n📋 Pipeline execution completed!")
+    log.info(f"\n📋 Pipeline execution completed!")
 
 
 if __name__ == "__main__":
