@@ -112,7 +112,7 @@ def print_skipped_files_summary(skipped_files: List[Dict[str, Any]]):
     
     log.info("=" * 60)
 
-def process_single_symbol(symbol: str, folder_path: str, output_directory: str) -> Tuple[bool, str]:
+def process_single_symbol(symbol: str, folder_path: str, output_directory: str, suffix: str = '') -> str:
     """
     Process a single symbol and save the merged result.
     
@@ -120,9 +120,10 @@ def process_single_symbol(symbol: str, folder_path: str, output_directory: str) 
         symbol (str): Symbol name
         folder_path (str): Path to the folder containing CSV files
         output_directory (str): Directory to save the output file
+        suffix (str): Suffix to add to the output filename (e.g., '-pair', '-instrument')
         
     Returns:
-        Tuple[bool, str]: (True if successful, output file path) or (False, None)
+        str: Output file path if successful, None otherwise
     """
     try:
         log.info(f"\n🔄 Processing symbol: {symbol}")
@@ -133,7 +134,7 @@ def process_single_symbol(symbol: str, folder_path: str, output_directory: str) 
         
         if merged_df.empty:
             log.error(f"❌ No data was loaded for {symbol}")
-            return False, None
+            return None
         
         # Display data summary
         log.info(f"📊 Merged dataframe shape: {merged_df.shape}")
@@ -147,8 +148,8 @@ def process_single_symbol(symbol: str, folder_path: str, output_directory: str) 
         # Create output directory if it doesn't exist
         os.makedirs(output_directory, exist_ok=True)
         
-        # Generate output filename
-        output_filename = f"{symbol}_ticks.parquet"
+        # Generate output filename with suffix
+        output_filename = f"{symbol}{suffix}_ticks.parquet"
         output_path = os.path.join(output_directory, output_filename)
         
         # Save merged data with float32 precision
@@ -167,33 +168,53 @@ def run_merge(config):
     Run the merge process with the specified configuration.
     
     Args:
-        config (Dict[str, Any]): Configuration dictionary containing symbols and output directory settings
+        config (Dict[str, Any]): Configuration dictionary containing pairs, instruments and output directory settings
     """
     try:
         log.info("🚀 Starting CSV Merge Process")
         log.info("=" * 50)
         
         # Extract configuration values
-        symbols_config = config['symbols']
         output_directory = config['output_directory']
         
+        # Get pairs and instruments configurations
+        pairs_config = config.get('pairs', [])
+        instruments_config = config.get('instruments', [])
+        
         log.info(f"📁 Output directory: {output_directory}")
-        log.info(f"🔤 Symbols to process: {len(symbols_config)}")
+        log.info(f"🔤 Pairs to process: {len(pairs_config)}")
+        log.info(f"📈 Instruments to process: {len(instruments_config)}")
         
-        # Process each symbol sequentially
-        total_symbols = len(symbols_config)
+        total_processed = 0
         
-        for symbol_config in symbols_config:
-            symbol = symbol_config['symbol']
-            folder_path = symbol_config['folder_path']
-            
-            output_path = process_single_symbol(symbol, folder_path, output_directory)
+        # Process pairs
+        if pairs_config:
+            log.info(f"\n💱 Processing {len(pairs_config)} pairs...")
+            for symbol_config in pairs_config:
+                symbol = symbol_config['symbol']
+                folder_path = symbol_config['folder_path']
+                
+                output_path = process_single_symbol(symbol, folder_path, output_directory, suffix='-pair')
+                if output_path:
+                    total_processed += 1
+        
+        # Process instruments
+        if instruments_config:
+            log.info(f"\n📊 Processing {len(instruments_config)} instruments...")
+            for symbol_config in instruments_config:
+                symbol = symbol_config['symbol']
+                folder_path = symbol_config['folder_path']
+                
+                output_path = process_single_symbol(symbol, folder_path, output_directory, suffix='-instrument')
+                if output_path:
+                    total_processed += 1
         
         # Display final summary
         log.info(f"\n🎯 Merge Process Summary:")
         log.info("=" * 50)
-        log.info(f"   📊 Total symbols: {total_symbols}")
-        log.info(f"   ✅ Successful: {total_symbols}")
+        log.info(f"   💱 Total pairs: {len(pairs_config)}")
+        log.info(f"   📈 Total instruments: {len(instruments_config)}")
+        log.info(f"   ✅ Successfully processed: {total_processed}")
         log.info(f"   📁 Output directory: {output_directory}")
         log.info("\n🎉 All symbols processed successfully!")
         

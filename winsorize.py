@@ -9,6 +9,7 @@ import os
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Any, Tuple
+import pickle
 from scipy import stats
 from logger import log
 
@@ -76,6 +77,34 @@ def calculate_winsorization_bounds(df: pd.DataFrame, aggregations: List[str], hi
     return bounds, percentiles
 
 
+def save_winsorization_params(bounds: Dict[str, Tuple[float, float]], percentiles: Dict[str, Tuple[float, float]], output_directory: str, time_window: str):
+    """
+    Save winsorization parameters to file.
+    
+    Args:
+        bounds (Dict[str, Tuple[float, float]]): Dictionary mapping column names to (lower_bound, upper_bound)
+        percentiles (Dict[str, Tuple[float, float]]): Dictionary mapping column names to (low_percentile, high_percentile)
+        output_directory (str): Output directory
+        time_window (str): Time window used for aggregation
+    """
+    params_file = os.path.join(output_directory, f"{time_window}_winsorization_params.pkl")
+    
+    # Combine bounds and percentiles into a single dictionary
+    winsorization_params = {
+        'bounds': bounds,
+        'percentiles': percentiles
+    }
+    
+    try:
+        with open(params_file, 'wb') as f:
+            pickle.dump(winsorization_params, f)
+        log.info(f"✅ Winsorization parameters saved to {params_file}")
+    except Exception as e:
+        error_msg = f"Error saving winsorization parameters: {e}"
+        log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+        raise Exception(error_msg)
+
+
 def apply_winsorization(df: pd.DataFrame, bounds: Dict[str, Tuple[float, float]], percentiles: Dict[str, Tuple[float, float]], suffix: str = "") -> pd.DataFrame:
     """
     Apply winsorization to dataframe using pre-calculated bounds.
@@ -108,7 +137,7 @@ def apply_winsorization(df: pd.DataFrame, bounds: Dict[str, Tuple[float, float]]
     return df_winsorized
 
 
-def process_winsorization(input_files: List[str], output_directory: str, winsorization_configs: List[Dict[str, Any]]) -> bool:
+def process_winsorization(input_files: List[str], output_directory: str, winsorization_configs: List[Dict[str, Any]], time_window: str = None) -> bool:
     """
     Process winsorization for train/val/test files.
     
@@ -116,6 +145,7 @@ def process_winsorization(input_files: List[str], output_directory: str, winsori
         input_files (List[str]): List of input file paths (train, val, test)
         output_directory (str): Output directory
         winsorization_configs (List[Dict[str, Any]]): List of winsorization configurations
+        time_window (str): Time window used for aggregation
         
     Returns:
         bool: True if successful, False otherwise
@@ -158,6 +188,10 @@ def process_winsorization(input_files: List[str], output_directory: str, winsori
             bounds, percentiles = calculate_winsorization_bounds(train_df, aggregations, high_percentile, low_percentile)
             all_bounds.update(bounds)
             all_percentiles.update(percentiles)
+        
+        # Save winsorization parameters
+        log.info("💾 Saving winsorization parameters...")
+        save_winsorization_params(all_bounds, all_percentiles, output_directory, time_window)
         
         # Process each dataset
         datasets = [
@@ -206,16 +240,18 @@ def run_winsorize(config: Dict[str, Any]):
         input_files = config['input_files']
         output_directory = config['output_directory']
         winsorization_configs = config['winsorization_configs']
+        time_window = config.get('time_window', None)
         
         log.info(f"📁 Input files: {len(input_files)} files to process")
         log.info(f"📁 Output directory: {output_directory}")
         log.info(f"🔧 Winsorization configurations: {len(winsorization_configs)} configs")
+        log.info(f"⏰ Time window: {time_window}")
         
         # Create output directory if it doesn't exist
         os.makedirs(output_directory, exist_ok=True)
         
         # Process winsorization
-        success = process_winsorization(input_files, output_directory, winsorization_configs)
+        success = process_winsorization(input_files, output_directory, winsorization_configs, time_window)
         
         if success:
             log.info("✅ Winsorization pipeline completed successfully!")
@@ -237,14 +273,15 @@ if __name__ == "__main__":
             'data/1H_forex_data_test.parquet'
         ],
         'output_directory': 'data',
+        'time_window': '1H',
         'winsorization_configs': [
             {
-                'columns': ['tick_count', 'volatility'],
+                'aggregations': ['tick_count', 'volatility'],
                 'high': 0.95,
                 'low': 0.05
             },
             {
-                'columns': ['volume'],
+                'aggregations': ['volume'],
                 'high': 0.99,
                 'low': 0.01
             }

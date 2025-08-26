@@ -16,6 +16,7 @@ from aggregate import run_aggregate
 from split import run_split
 from winsorize import run_winsorize
 from featurize import run_featurize
+from normalize import run_normalize
 from visualize import run_visualize
 from logger import log
 
@@ -55,22 +56,66 @@ def get_expected_input_files(step_name: str, pipeline_config: Dict[str, Any] = N
         List[str]: List of expected input file paths
     """
     # Check if pipeline_config is required and provided
-    steps_requiring_config = ["clean_ticks", "aggregate", "split", "winsorize", "clean_aggregated", "featurize", "clean_featurized", "visualize"]
+    steps_requiring_config = ["clean_ticks", "aggregate", "split", "winsorize", "clean_aggregated", "featurize", "clean_featurized", "normalize", "visualize"]
     if step_name in steps_requiring_config and pipeline_config is None:
         error_msg = f"Pipeline config is required for {step_name} step"
         log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
         raise ValueError(error_msg)
     
+    def get_split_files(time_window: str, output_filename: str, output_directory: str):
+        """
+        Helper function to get split files.
+        
+        Args:
+            time_window (str): Time window from aggregate config
+            output_filename (str): Output filename from aggregate config
+            output_directory (str): Output directory
+            
+        Returns:
+            List[str]: List of file paths
+        """
+        suffixes = ['_train', '_val', '_test']
+        files = []
+        missing_files = []
+        
+        for suffix in suffixes:
+            file_path = os.path.join(output_directory, f"{time_window}_{output_filename}{suffix}.parquet")
+            if os.path.exists(file_path):
+                files.append(file_path)
+            else:
+                missing_files.append(file_path)
+        
+        if missing_files:
+            error_msg = f"Required input files not found: {missing_files}"
+            log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+            raise FileNotFoundError(error_msg)
+        
+        files.sort()
+        return files
+    
     if step_name == "merge":
         # Merge doesn't have input files from previous steps
         return None
     elif step_name == "clean_ticks":
-        # Clean ticks expects <symbol>_ticks.parquet files where symbols come from merge section
-        symbols = [symbol_config['symbol'] for symbol_config in pipeline_config['merge']['symbols']]
+        # Clean ticks expects <symbol>-pair_ticks.parquet and <symbol>-instrument_ticks.parquet files
         files = []
         missing_files = []
-        for symbol in symbols:
-            file_path = os.path.join(pipeline_config['output_directory'], f"{symbol}_ticks.parquet")
+        
+        # Get pairs and instruments from merge config
+        pairs = [symbol_config['symbol'] for symbol_config in pipeline_config['merge'].get('pairs', [])]
+        instruments = [symbol_config['symbol'] for symbol_config in pipeline_config['merge'].get('instruments', [])]
+        
+        # Check for pair files
+        for symbol in pairs:
+            file_path = os.path.join(pipeline_config['output_directory'], f"{symbol}-pair_ticks.parquet")
+            if os.path.exists(file_path):
+                files.append(file_path)
+            else:
+                missing_files.append(file_path)
+        
+        # Check for instrument files
+        for symbol in instruments:
+            file_path = os.path.join(pipeline_config['output_directory'], f"{symbol}-instrument_ticks.parquet")
             if os.path.exists(file_path):
                 files.append(file_path)
             else:
@@ -84,12 +129,25 @@ def get_expected_input_files(step_name: str, pipeline_config: Dict[str, Any] = N
         files.sort()
         return files
     elif step_name == "aggregate":
-        # Aggregate expects <symbol>_ticks.parquet files where symbols come from merge section
-        symbols = [symbol_config['symbol'] for symbol_config in pipeline_config['merge']['symbols']]
+        # Aggregate expects <symbol>-pair_ticks.parquet and <symbol>-instrument_ticks.parquet files
         files = []
         missing_files = []
-        for symbol in symbols:
-            file_path = os.path.join(pipeline_config['output_directory'], f"{symbol}_ticks.parquet")
+        
+        # Get pairs and instruments from merge config
+        pairs = [symbol_config['symbol'] for symbol_config in pipeline_config['merge'].get('pairs', [])]
+        instruments = [symbol_config['symbol'] for symbol_config in pipeline_config['merge'].get('instruments', [])]
+        
+        # Check for pair files
+        for symbol in pairs:
+            file_path = os.path.join(pipeline_config['output_directory'], f"{symbol}-pair_ticks.parquet")
+            if os.path.exists(file_path):
+                files.append(file_path)
+            else:
+                missing_files.append(file_path)
+        
+        # Check for instrument files
+        for symbol in instruments:
+            file_path = os.path.join(pipeline_config['output_directory'], f"{symbol}-instrument_ticks.parquet")
             if os.path.exists(file_path):
                 files.append(file_path)
             else:
@@ -114,126 +172,11 @@ def get_expected_input_files(step_name: str, pipeline_config: Dict[str, Any] = N
             error_msg = f"Required input file for split step not found: {file_path}"
             log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
             raise FileNotFoundError(error_msg)
-    elif step_name == "winsorize":
-        # Winsorize expects <time_freq>_<agg_output_filename>_train.parquet, _val.parquet, _test.parquet files
+    elif step_name in ["winsorize", "clean_aggregated", "featurize", "clean_featurized", "normalize", "visualize"]:
+        # These steps expect <time_freq>_<output_filename>_train.parquet, _val.parquet, _test.parquet files
         time_window = pipeline_config['aggregate']['time_window']
         output_filename = pipeline_config['aggregate']['output_filename']
-        base_filename = f"{time_window}_{output_filename}"
-        
-        files = []
-        missing_files = []
-        for suffix in ['_train', '_val', '_test']:
-            file_path = os.path.join(pipeline_config['output_directory'], f"{base_filename}{suffix}.parquet")
-            if os.path.exists(file_path):
-                files.append(file_path)
-            else:
-                missing_files.append(file_path)
-        
-        if missing_files:
-            error_msg = f"Required input files for winsorize step not found: {missing_files}"
-            log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
-            raise FileNotFoundError(error_msg)
-        
-        files.sort()
-        return files
-    elif step_name == "clean_aggregated":
-        # Clean aggregated expects <time_freq>_<agg_output_filename>_train.parquet, _val.parquet, _test.parquet files
-        time_window = pipeline_config['aggregate']['time_window']
-        output_filename = pipeline_config['aggregate']['output_filename']
-        base_filename = f"{time_window}_{output_filename}"
-        
-        files = []
-        missing_files = []
-        for suffix in ['_train', '_val', '_test']:
-            file_path = os.path.join(pipeline_config['output_directory'], f"{base_filename}{suffix}.parquet")
-            if os.path.exists(file_path):
-                files.append(file_path)
-            else:
-                missing_files.append(file_path)
-        
-        if missing_files:
-            error_msg = f"Required input files for clean_aggregated step not found: {missing_files}"
-            log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
-            raise FileNotFoundError(error_msg)
-        
-        files.sort()
-        return files
-    elif step_name == "featurize":
-        # Featurize expects <time_freq>_<agg_output_filename>_train.parquet, _val.parquet, _test.parquet files
-        time_window = pipeline_config['aggregate']['time_window']
-        output_filename = pipeline_config['aggregate']['output_filename']
-        base_filename = f"{time_window}_{output_filename}"
-        
-        files = []
-        missing_files = []
-        for suffix in ['_train', '_val', '_test']:
-            file_path = os.path.join(pipeline_config['output_directory'], f"{base_filename}{suffix}.parquet")
-            if os.path.exists(file_path):
-                files.append(file_path)
-            else:
-                missing_files.append(file_path)
-        
-        if missing_files:
-            error_msg = f"Required input files for featurize step not found: {missing_files}"
-            log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
-            raise FileNotFoundError(error_msg)
-        
-        files.sort()
-        return files
-    elif step_name == "clean_featurized":
-        # Clean featurized expects <time_freq>_<agg_output_filename>_train.parquet, _val.parquet, _test.parquet files
-        time_window = pipeline_config['aggregate']['time_window']
-        output_filename = pipeline_config['aggregate']['output_filename']
-        base_filename = f"{time_window}_{output_filename}"
-        
-        files = []
-        missing_files = []
-        for suffix in ['_train', '_val', '_test']:
-            file_path = os.path.join(pipeline_config['output_directory'], f"{base_filename}{suffix}.parquet")
-            if os.path.exists(file_path):
-                files.append(file_path)
-            else:
-                missing_files.append(file_path)
-            
-            if os.path.exists(file_path):
-                files.append(file_path)
-            else:
-                missing_files.append(file_path)
-        
-        if missing_files:
-            error_msg = f"Required input files for clean_featurized step not found: {missing_files}"
-            log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
-            raise FileNotFoundError(error_msg)
-        
-        files.sort()
-        return files
-    elif step_name == "visualize":
-        # Visualize expects the final processed files (train/val/test)
-        time_window = pipeline_config['aggregate']['time_window']
-        output_filename = pipeline_config['aggregate']['output_filename']
-        base_filename = f"{time_window}_{output_filename}"
-        
-        files = []
-        missing_files = []
-        for suffix in ['_train', '_val', '_test']:
-            file_path = os.path.join(pipeline_config['output_directory'], f"{base_filename}{suffix}.parquet")
-            if os.path.exists(file_path):
-                files.append(file_path)
-            else:
-                missing_files.append(file_path)
-            
-            if os.path.exists(file_path):
-                files.append(file_path)
-            else:
-                missing_files.append(file_path)
-        
-        if missing_files:
-            error_msg = f"Required input files for visualize step not found: {missing_files}"
-            log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
-            raise FileNotFoundError(error_msg)
-        
-        files.sort()
-        return files
+        return get_split_files(time_window, output_filename, pipeline_config['output_directory'])
     else:
         error_msg = f"Unknown step: {step_name}"
         log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
@@ -252,8 +195,10 @@ def generate_merge_config(pipeline_config: Dict[str, Any]) -> Dict[str, Any]:
     log.info("\n🔧 Generating merge configuration...")
     
     merge_config = {
-        'symbols': pipeline_config['merge']['symbols'],
-        'output_directory': pipeline_config['output_directory']
+        'pairs': pipeline_config['merge'].get('pairs', []),
+        'instruments': pipeline_config['merge'].get('instruments', []),
+        'output_directory': pipeline_config['output_directory'],
+        'time_column': pipeline_config['merge']['time_column']
     }
     
     return merge_config
@@ -278,7 +223,7 @@ def generate_clean_ticks_config(pipeline_config: Dict[str, Any], input_files: Li
             'ticks': {
                 'input_files': input_files,
                 'output_directory': pipeline_config['output_directory'],
-                'time_column': pipeline_config['clean_ticks']['time_column']
+                'time_column': pipeline_config['merge']['time_column']
             }
         }
     }
@@ -348,7 +293,8 @@ def generate_winsorize_config(pipeline_config: Dict[str, Any], input_files: List
     winsorize_config = {
         'input_files': input_files,
         'output_directory': pipeline_config['output_directory'],
-        'winsorization_configs': pipeline_config.get('winsorize', [])
+        'winsorization_configs': pipeline_config.get('winsorize', []),
+        'time_window': pipeline_config['aggregate']['time_window']
     }
     
     return winsorize_config
@@ -397,8 +343,7 @@ def generate_featurize_config(pipeline_config: Dict[str, Any], input_files: List
     featurize_config = {
         'input_files': input_files,
         'output_directory': pipeline_config['output_directory'],
-        'featurizers': pipeline_config['featurize']['featurizers'],
-        'output_filename': pipeline_config['featurize'].get('output_filename', None)
+        'featurizers': pipeline_config['featurize']['featurizers']
     }
     
     return featurize_config
@@ -429,6 +374,28 @@ def generate_clean_featurized_config(pipeline_config: Dict[str, Any], input_file
     }
         
     return clean_config
+
+
+def generate_normalize_config(pipeline_config: Dict[str, Any], input_files: List[str]) -> Dict[str, Any]:
+    """
+    Generate normalize configuration dictionary.
+    
+    Args:
+        pipeline_config (Dict[str, Any]): Main pipeline configuration
+        input_files (List[str]): List of input file paths
+        
+    Returns:
+        Dict[str, Any]: Generated normalize configuration dictionary
+    """
+    log.info("\n🔧 Generating normalize configuration...")
+    
+    normalize_config = {
+        'input_files': input_files,
+        'output_directory': pipeline_config['output_directory'],
+        'time_window': pipeline_config['aggregate']['time_window']  # Keep for pickle file naming
+    }
+    
+    return normalize_config
 
 
 def generate_visualize_config(pipeline_config: Dict[str, Any], input_files: List[str]) -> Dict[str, Any]:
@@ -465,7 +432,7 @@ def validate_and_order_steps(steps_to_execute: List[str]) -> List[str]:
         List[str]: Ordered list of steps to execute
     """
     # Define the correct order - each step depends on the previous one
-    correct_order = ["merge", "clean_ticks", "aggregate", "split", "winsorize", "clean_aggregated", "featurize", "clean_featurized", "visualize"]
+    correct_order = ["merge", "clean_ticks", "aggregate", "split", "winsorize", "clean_aggregated", "featurize", "clean_featurized", "normalize", "visualize"]
     
     # Reorder steps to execute in correct sequence
     ordered_steps = []
@@ -565,6 +532,8 @@ def run_pipeline(config_file="pipeline.yaml"):
                     run_pipeline_step(step_name, run_featurize, generate_featurize_config(pipeline_config, expected_input_files))
                 elif step_name == "clean_featurized":
                     run_pipeline_step(step_name, run_clean, generate_clean_featurized_config(pipeline_config, expected_input_files))
+                elif step_name == "normalize":
+                    run_pipeline_step(step_name, run_normalize, generate_normalize_config(pipeline_config, expected_input_files))
                 elif step_name == "visualize":
                     run_pipeline_step(step_name, run_visualize, generate_visualize_config(pipeline_config, expected_input_files))
                 

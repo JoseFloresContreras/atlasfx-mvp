@@ -98,6 +98,9 @@ def featurize_data(data: pd.DataFrame, featurizers_config: Dict[str, Dict[str, A
             feat_result = feat_func(data, config)
             
             if not feat_result.empty:
+                # Add [Feature] prefix to all output columns from feat_func
+                feat_result.columns = [f"[Feature] {col}" for col in feat_result.columns]
+                
                 # Collect the featurizer result for later merging
                 all_featurizer_results.append(feat_result)
                 log.info(f"  ✅ Added {len(feat_result.columns)} columns from {feat_name}")
@@ -207,7 +210,6 @@ def run_featurize(config):
         input_files = config['input_files']
         output_directory = config['output_directory']
         # Get custom output filename if specified
-        custom_filename = config.get('output_filename', None)
         
         # Collect all unique featurizer names
         all_featurizer_names = list(featurizers_config.keys())
