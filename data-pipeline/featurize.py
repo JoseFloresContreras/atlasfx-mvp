@@ -102,7 +102,7 @@ def featurize_data(data: pd.DataFrame, featurizers_config: Dict[str, Dict[str, A
                 feat_result.columns = [f"[Feature] {col}" for col in feat_result.columns]
                 
                 # Collect the featurizer result for later merging
-                all_featurizer_results.append(feat_result)
+                all_featurizer_results.append(feat_result.astype(np.float32))
                 log.info(f"  ✅ Added {len(feat_result.columns)} columns from {feat_name}")
             else:
                 log.warning(f"  ⚠️  No results from featurizer: {feat_name}")
@@ -132,7 +132,6 @@ def featurize_data(data: pd.DataFrame, featurizers_config: Dict[str, Dict[str, A
             right_index=True, 
             how='outer'
         )
-        featurized_df = featurized_df.astype(np.float32)
         
         log.info(f"✅ Successfully merged all featurizer results")
     
@@ -188,7 +187,7 @@ def process_single_file(input_file: str, featurizers_config: Dict[str, Dict[str,
         
         # Reset index to make start_time a regular column (same as aggregate)
         featurized_data = featurized_data.reset_index()
-        featurized_data[time_column] = (featurized_data[time_column].view('int64') // 10**6)
+        featurized_data["start_time"] = featurized_data["start_time"].astype("int64") // 10**6
 
         log.info(f"✅ Successfully featurized data to {len(featurized_data)} rows")
         return True, featurized_data

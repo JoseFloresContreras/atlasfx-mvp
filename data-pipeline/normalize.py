@@ -112,14 +112,16 @@ def compute_normalization_stats(train_df: pd.DataFrame, feature_cols: List[str])
     return stats
 
 
-def normalize_dataframe(df: pd.DataFrame, feature_cols: List[str], stats: Dict[str, Dict[str, float]]) -> pd.DataFrame:
+def normalize_dataframe(df: pd.DataFrame, feature_cols: List[str], stats: Dict[str, Dict[str, float]], clip_threshold: float = None) -> pd.DataFrame:
     """
-    Normalize dataframe using pre-computed statistics.
+    Normalize dataframe using pre-computed statistics and optionally clip extreme values.
     
     Args:
         df (pd.DataFrame): Dataframe to normalize
         feature_cols (List[str]): List of feature columns
         stats (Dict[str, Dict[str, float]]): Normalization statistics
+        clip_threshold (float, optional): Threshold to clip values after normalization. 
+                                        Values with magnitude > threshold will be clipped.
         
     Returns:
         pd.DataFrame: Normalized dataframe
@@ -138,6 +140,30 @@ def normalize_dataframe(df: pd.DataFrame, feature_cols: List[str], stats: Dict[s
             normalized_df[col] = (normalized_df[col] - mean_val) / std_val
             
             log.info(f"  Normalized {col}: mean={normalized_df[col].mean():.6f}, std={normalized_df[col].std():.6f}")
+    
+    # Apply clipping if threshold is specified
+    if clip_threshold is not None:
+        log.info(f"✂️  Clipping values with magnitude > {clip_threshold}...")
+        
+        # Count values before clipping for reporting
+        total_values = len(normalized_df) * len(feature_cols)
+        clipped_values = 0
+        
+        for col in feature_cols:
+            if col in normalized_df.columns:
+                # Count values that will be clipped
+                above_threshold = (normalized_df[col] > clip_threshold).sum()
+                below_threshold = (normalized_df[col] < -clip_threshold).sum()
+                col_clipped = above_threshold + below_threshold
+                clipped_values += col_clipped
+                
+                # Apply clipping
+                normalized_df[col] = normalized_df[col].clip(-clip_threshold, clip_threshold)
+                
+                if col_clipped > 0:
+                    log.info(f"  Clipped {col}: {col_clipped} values ({(col_clipped/len(normalized_df)*100):.2f}%)")
+        
+        log.info(f"✂️  Total clipped values: {clipped_values} ({(clipped_values/total_values*100):.2f}% of all feature values)")
     
     return normalized_df
 
@@ -177,6 +203,7 @@ def run_normalize(config: Dict[str, Any]):
         input_files = config['input_files']
         output_directory = config['output_directory']
         time_window = config.get('time_window', None)
+        clip_threshold = config.get('clip_threshold', None)
         
         # Find train file and load it
         train_file = None
@@ -219,8 +246,8 @@ def run_normalize(config: Dict[str, Any]):
             # Load data
             df = load_data(input_file)
             
-            # Normalize data
-            normalized_df = normalize_dataframe(df, feature_cols, normalization_stats)
+            # Normalize data with optional clipping
+            normalized_df = normalize_dataframe(df, feature_cols, normalization_stats, clip_threshold)
             
             # Save with same filename
             save_data(normalized_df, input_file)
@@ -245,7 +272,10 @@ if __name__ == "__main__":
             'data/5min_forex_data_test.parquet'
         ],
         'output_directory': 'data',
-        'time_window': '5min'
+        'time_window': '5min',
+        'normalize': {
+            'clip_threshold': 3.0  # Clip values with magnitude > 3.0
+        }
     }
     
     run_normalize(config) 

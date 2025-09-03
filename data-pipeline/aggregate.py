@@ -123,14 +123,15 @@ def aggregate_data(data: pd.DataFrame, time_window: str, aggregators: Dict[str, 
     results = resampled.apply(apply_aggregators)
     
     # Convert results to DataFrame
-    aggregated_df = pd.DataFrame(results.tolist()).astype(np.float32)
+    aggregated_df = pd.DataFrame(results.tolist())
     
     if not aggregated_df.empty:
         # Reorder columns for better readability
         time_cols = ['start_time']
         other_cols = [col for col in aggregated_df.columns if col not in time_cols]
+        aggregated_df[other_cols] = aggregated_df[other_cols].astype(np.float32)
         aggregated_df = aggregated_df[time_cols + other_cols]
-    
+
     return aggregated_df
 
 def process_single_file(input_file: str, time_window: str, aggregators: Dict[str, Callable]) -> tuple:
@@ -198,40 +199,20 @@ def combine_aggregated_dataframes(dataframes_dict: Dict[str, pd.DataFrame], time
     
     log.info(f"\n🔄 Combining {len(dataframes_dict)} dataframes...")
     
-    # Start with the first dataframe as base
-    symbols = list(dataframes_dict.keys())
-    base_symbol = symbols[0]
-    combined_df = dataframes_dict[base_symbol].copy()
+    dfs = []
+    for symbol, df in dataframes_dict.items():
+        df = df.copy()
+        df = df.set_index("start_time")
+        df = df.add_prefix(f"{symbol} | ")
+        dfs.append(df)
+
+    combined_df = pd.concat(dfs, axis=1, join="outer").reset_index()
     
-    # Set window_start_unix as index for merging
-    combined_df.set_index('start_time', inplace=True)
-    
-    # Add symbol prefix to base dataframe columns (except time-related columns)
-    for col in combined_df.columns:
-        combined_df[f'{base_symbol} | {col}'] = combined_df[col]
-        combined_df.drop(columns=[col], inplace=True)
-    
-    # Merge other dataframes
-    for symbol in symbols[1:]:
-        df = dataframes_dict[symbol].copy()
-        df.set_index('start_time', inplace=True)
-        
-        # Add symbol prefix to columns (except time-related columns)
-        for col in df.columns:
-            df[f'{symbol} | {col}'] = df[col]
-            df.drop(columns=[col], inplace=True)
-                
-        combined_df = combined_df.merge(df, left_index=True, right_index=True, how='outer')
-    
-    # Reset index to make window_start_unix a column again
-    combined_df.reset_index(inplace=True)
-    
+    log.info(f"Combined dataframe memory usage: {combined_df.memory_usage(deep=True).sum() / 1024**2:.2f} MB")
     log.info(f"✅ Combined dataframe shape: {combined_df.shape}")
     log.info(f"📊 Columns: {list(combined_df.columns)}")
-    
+
     return combined_df
-
-
 
 def run_aggregate(config):
     """

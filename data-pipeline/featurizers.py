@@ -46,127 +46,140 @@ def log_pct_change(dataframe: pd.DataFrame, config: Dict[str, Any]) -> pd.DataFr
     for col in numeric_columns:
         # Calculate log percentage change: log(current_price / previous_price)
         # This is equivalent to log(current_price) - log(previous_price)
-        result_df[f'{col} | log_pct_change'] = np.log1p(dataframe[col]).diff()
+        # Replace 0 with NaN and take normal log difference
+        values = dataframe[col].replace(0, np.nan)
+        result_df[f'{col} | log_pct_change'] = np.log(values).diff()
     
     return result_df
 
-def _session_flag_local(index_utc: pd.DatetimeIndex, tz: str, open_h: int, close_h: int):
-    """Return int8 mask where local time in tz is within [open_h:00, close_h:00)."""
-    idx_local = index_utc.tz_convert(tz)
-    t = idx_local.time
-    open_t = dt.time(open_h, 0)
-    close_t = dt.time(close_h, 0)
-    if open_t < close_t:  # same-day session (most)
-        mask = (t >= open_t) & (t < close_t)
-    else:                 # overnight session (rare if using local market hours)
-        mask = (t >= open_t) | (t < close_t)
-    return mask.astype(np.int8)
+def _ensure_utc_index(index: pd.DatetimeIndex) -> pd.DatetimeIndex:
+    """
+    Ensure DatetimeIndex is timezone-aware in UTC (assumes naive -> UTC).
+    """
+    if index.tz is None:
+        return index.tz_localize("UTC")
+    # Normalize everything to UTC before conversions
+    return index.tz_convert("UTC")
 
-def sydney_session(dataframe: pd.DataFrame, config: Dict[str, Any]) -> pd.DataFrame:
+def _session_flag_local(
+    index_utc: pd.DatetimeIndex,
+    tz: str,
+    open_h: int,
+    close_h: int,
+    include_weekends: bool = False,
+) -> np.ndarray:
+    """
+    Return int8 mask where local time in `tz` is within [open_h:00, close_h:00).
+    - Vectorized
+    - Weekend-aware (Mon–Fri only by default)
+
+    If the local session crosses midnight (open_h > close_h), the mask wraps overnight.
+    """
+    idx = _ensure_utc_index(index_utc)
+    idx_local = idx.tz_convert(tz)
+
+    # Local times and weekdays
+    local_hour = idx_local.hour
+    local_min = idx_local.minute
+    local_sec = idx_local.second
+    # Convert to a "seconds since midnight" scalar so comparisons include minutes/seconds
+    local_sod = local_hour * 3600 + local_min * 60 + local_sec
+
+    open_sod = open_h * 3600
+    close_sod = close_h * 3600
+
+    if open_sod < close_sod:
+        # Same-day session
+        time_open = (local_sod >= open_sod) & (local_sod < close_sod)
+    else:
+        # Overnight session (wraps past midnight)
+        time_open = (local_sod >= open_sod) | (local_sod < close_sod)
+
+    if not include_weekends:
+        # Monday=0 ... Sunday=6; keep only Mon–Fri
+        weekday = idx_local.weekday
+        time_open &= (weekday < 5)
+
+    return time_open.astype(np.int8)
+
+def sydney_session(dataframe: pd.DataFrame, config: Dict[str, Any] = None) -> pd.DataFrame:
     """
     Create Sydney trading session flags.
-    
-    Sydney local trading hours ~ 08:00–17:00; UTC becomes 21:00–06:00 or 22:00–07:00 depending on DST.
-    
-    Args:
-        dataframe: Input dataframe with time index
-        config: Dictionary containing configuration parameters (optional)
-        
-    Returns:
-        pd.DataFrame: DataFrame with Sydney session flag column
+    Sydney local ~ 08:00–17:00; weekend closed.
     """
     if dataframe.empty:
         return pd.DataFrame()
-    
-    m = _session_flag_local(dataframe.index, 'Australia/Sydney', 8, 17)
-    return pd.DataFrame({'sydney_session': m}, index=dataframe.index)
+    m = _session_flag_local(dataframe.index, "Australia/Sydney", 8, 17, include_weekends=False)
+    return pd.DataFrame({"sydney_session": m}, index=dataframe.index)
 
-def tokyo_session(dataframe: pd.DataFrame, config: Dict[str, Any]) -> pd.DataFrame:
+def tokyo_session(dataframe: pd.DataFrame, config: Dict[str, Any] = None) -> pd.DataFrame:
     """
     Create Tokyo trading session flags.
-    
-    Tokyo has no DST; local 09:00–18:00 → ~00:00–09:00 UTC year-round.
-    
-    Args:
-        dataframe: Input dataframe with time index
-        config: Dictionary containing configuration parameters (optional)
-        
-    Returns:
-        pd.DataFrame: DataFrame with Tokyo session flag column
+    Tokyo local 09:00–18:00; no DST; weekend closed.
     """
     if dataframe.empty:
         return pd.DataFrame()
-    
-    m = _session_flag_local(dataframe.index, 'Asia/Tokyo', 9, 18)
-    return pd.DataFrame({'tokyo_session': m}, index=dataframe.index)
+    m = _session_flag_local(dataframe.index, "Asia/Tokyo", 9, 18, include_weekends=False)
+    return pd.DataFrame({"tokyo_session": m}, index=dataframe.index)
 
-def london_session(dataframe: pd.DataFrame, config: Dict[str, Any]) -> pd.DataFrame:
+def london_session(dataframe: pd.DataFrame, config: Dict[str, Any] = None) -> pd.DataFrame:
     """
     Create London trading session flags.
-    
-    London local 08:00–17:00; UTC shows the 1h DST swing automatically.
-    
-    Args:
-        dataframe: Input dataframe with time index
-        config: Dictionary containing configuration parameters (optional)
-        
-    Returns:
-        pd.DataFrame: DataFrame with London session flag column
+    London local 08:00–17:00; weekend closed (DST handled by tz).
     """
     if dataframe.empty:
         return pd.DataFrame()
-    
-    m = _session_flag_local(dataframe.index, 'Europe/London', 8, 17)
-    return pd.DataFrame({'london_session': m}, index=dataframe.index)
+    m = _session_flag_local(dataframe.index, "Europe/London", 8, 17, include_weekends=False)
+    return pd.DataFrame({"london_session": m}, index=dataframe.index)
 
-def ny_session(dataframe: pd.DataFrame, config: Dict[str, Any]) -> pd.DataFrame:
+def ny_session(dataframe: pd.DataFrame, config: Dict[str, Any] = None) -> pd.DataFrame:
     """
     Create New York trading session flags.
-    
-    New York local 08:00–17:00; UTC becomes 13:00–22:00 (EST) or 12:00–21:00 (EDT).
-    
-    Args:
-        dataframe: Input dataframe with time index
-        config: Dictionary containing configuration parameters (optional)
-        
-    Returns:
-        pd.DataFrame: DataFrame with New York session flag column
+    New York local 08:00–17:00; weekend closed (EST/EDT handled by tz).
     """
     if dataframe.empty:
         return pd.DataFrame()
-    
-    m = _session_flag_local(dataframe.index, 'America/New_York', 8, 17)
-    return pd.DataFrame({'ny_session': m}, index=dataframe.index)
+    m = _session_flag_local(dataframe.index, "America/New_York", 8, 17, include_weekends=False)
+    return pd.DataFrame({"ny_session": m}, index=dataframe.index)
 
-def weekend(dataframe: pd.DataFrame, config: Dict[str, Any]) -> pd.DataFrame:
+def xauusd_session(dataframe: pd.DataFrame, config: Dict[str, Any] = None) -> pd.DataFrame:
     """
-    Create weekend flags based on tick count columns.
-    
-    Returns 1 if all columns containing 'tick_count' are 0 (indicating no trading activity),
-    otherwise returns 0. This helps identify weekend periods when markets are closed.
-    
-    Args:
-        dataframe: Input dataframe with time index
-        config: Dictionary containing configuration parameters (optional)
-        
+    Create XAUUSD CFD trading session flags (UTC), vectorized.
+
+    Assumed schedule (typical CME/CFD hours; verify with your broker):
+      - Open: Sunday 23:00 UTC
+      - Close: Friday 22:00 UTC
+      - Daily maintenance break: Mon–Thu 22:00–23:00 UTC
+      - Weekend closed: Fri 22:00 → Sun 23:00
+
     Returns:
-        pd.DataFrame: DataFrame with weekend flag column
+      DataFrame with 'xauusd_session' int8 flag column (1=open, 0=closed)
     """
     if dataframe.empty:
         return pd.DataFrame()
-    
-    # Find all columns containing 'tick_count'
-    tick_count_columns = [col for col in dataframe.columns if 'tick_count' in col]
-    
-    if not tick_count_columns:
-        log.critical("⚠️  No columns containing 'tick_count' found for weekend detection")
-        return pd.DataFrame()
-    
-    # Check if all tick_count columns are 0 for each row
-    # If all tick_count columns are 0, it's likely a weekend
-    weekend_flag = (dataframe[tick_count_columns] == 0).all(axis=1).astype(np.int8)
-    
-    return pd.DataFrame({'weekend': weekend_flag}, index=dataframe.index)
+
+    idx = _ensure_utc_index(dataframe.index)
+
+    wd = idx.weekday        # Mon=0 .. Sun=6
+    hr = idx.hour
+    mn = idx.minute
+    sc = idx.second
+    sod = hr * 3600 + mn * 60 + sc  # seconds-of-day
+
+    # Closed blocks
+    # 1) Weekend: full Saturday, Fri >=22:00, Sun <23:00
+    weekend_closed = (
+        (wd == 5) |                                   # Saturday
+        ((wd == 4) & (sod >= 22 * 3600)) |            # Friday 22:00–24:00
+        ((wd == 6) & (sod < 23 * 3600))               # Sunday 00:00–22:59:59
+    )
+
+    # 2) Daily maintenance break: Mon–Thu 22:00–23:00
+    maint_closed = ((wd >= 0) & (wd <= 3)) & (sod >= 22 * 3600) & (sod < 23 * 3600)
+
+    open_mask = ~(weekend_closed | maint_closed)
+
+    return pd.DataFrame({"xauusd_session": open_mask.astype(np.int8)}, index=dataframe.index)
 
 def vwap_deviation(dataframe: pd.DataFrame, config: Dict[str, Any]) -> pd.DataFrame:
     """
@@ -259,7 +272,7 @@ def ofi_rolling_mean(dataframe: pd.DataFrame, config: Dict[str, Any]) -> pd.Data
         symbol = ofi_col.split(' | ')[0]
         
         # Calculate rolling mean
-        rolling_mean = dataframe[ofi_col].rolling(window=window_size, min_periods=1).mean()
+        rolling_mean = dataframe[ofi_col].rolling(window=window_size).mean()
         
         # Create column name
         col_name = f"{symbol} | ofi_rolling_mean_{window_size}"
@@ -335,7 +348,7 @@ def atr(dataframe: pd.DataFrame, config: Dict[str, Any]) -> pd.DataFrame:
             true_range = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
             
             # Calculate ATR as rolling mean of True Range
-            atr_values = true_range.rolling(window=window_size, min_periods=1).mean()
+            atr_values = true_range.rolling(window=window_size).mean()
             
             # Create column name for ATR values
             col_name = f"{symbol} | atr_{window_size}"
@@ -387,7 +400,9 @@ def atr_log_pct_change(dataframe: pd.DataFrame, config: Dict[str, Any]) -> pd.Da
             
             # Calculate log percentage change: log(current_atr / previous_atr)
             # This is equivalent to log(current_atr) - log(previous_atr)
-            atr_log_pct_change = np.log1p(atr_values).diff()
+            # Replace 0 with NaN and take normal log difference
+            atr_values_clean = atr_values.replace(0, np.nan)
+            atr_log_pct_change = np.log(atr_values_clean).diff()
             
             # Create column name for ATR log percentage change
             log_pct_col_name = f"{symbol} | atr_{window_size}_log_pct_change"
@@ -453,12 +468,12 @@ def volatility_ratio(dataframe: pd.DataFrame, config: Dict[str, Any]) -> pd.Data
             short_atr = short_atr_df[short_col]
             long_atr = long_atr_df[long_col]
             
-            # Calculate volatility ratio, avoiding division by zero
-            volatility_ratio_values = np.log1p(short_atr / long_atr).diff()
-            
+            # Calculate volatility ratio
+            ratio = short_atr / long_atr
+                
             # Create column name
             col_name = f"{symbol} | volatility_ratio_{short_window}_{long_window}"
-            result_df[col_name] = volatility_ratio_values.astype(np.float32)
+            result_df[col_name] = ratio.astype(np.float32)
             
         except Exception as e:
             log.critical(f"Error calculating volatility ratio for {short_col}: {str(e)}")
@@ -514,22 +529,19 @@ def bipower_variation_features(dataframe: pd.DataFrame, config: Dict[str, Any]) 
             prod = abs_r * abs_r.shift(1)  # |r_t| * |r_{t-1}|
 
             # Bipower Variation: per-step average over (window_size-1) pairs
-            bv = (np.pi / 2.0) * prod.rolling(
-                window=window_size - 1,
-                min_periods=window_size - 1
-            ).mean()
+            bv = (np.pi / 2.0) * prod.rolling(window=window_size - 1).mean()
 
             # Realized variance: per-step average over window_size
-            rv = (r ** 2).rolling(window=window_size, min_periods=window_size).mean()
+            rv = (r ** 2).rolling(window=window_size).mean()
 
             jump = (rv - bv).clip(lower=0)
 
-            bv_norm = np.log1p(np.sqrt(bv)).diff()
-            jump_norm = np.log1p(np.sqrt(jump)).diff() 
-            
+            # Replace 0 with NaN and take normal log difference
+            bv = np.log1p(bv)
+            jump = np.log1p(jump)
 
-            out[f"{symbol} | bipower_variation_continuous_{window_size}"] = bv_norm.astype(np.float32)
-            out[f"{symbol} | bipower_variation_jump_{window_size}"] = jump_norm.astype(np.float32)
+            out[f"{symbol} | bipower_variation_continuous_{window_size}"] = bv.astype(np.float32)
+            out[f"{symbol} | bipower_variation_jump_{window_size}"] = jump.astype(np.float32)
 
         return out
 
@@ -634,7 +646,6 @@ def bollinger_width(dataframe: pd.DataFrame, config: Dict[str, Any]) -> pd.DataF
             
             # Calculate Bollinger Band Width: (Upper - Lower) / Middle
             bb_width = (upper_band - lower_band) / middle_band
-            bb_width = np.log1p(bb_width).diff()
             
             # Create column name for Bollinger Band Width values
             col_name = f"{symbol} | bollinger_width_{window_size}"
@@ -687,7 +698,7 @@ def return_skewness(dataframe: pd.DataFrame, config: Dict[str, Any]) -> pd.DataF
             log_returns = np.log(close.where(close > 0, np.nan)).diff()
             
             # Calculate rolling skewness of log returns
-            return_skew = log_returns.rolling(window=window_size, min_periods=window_size).skew()
+            return_skew = log_returns.rolling(window=window_size).skew()
             
             # Create column name for return skewness values
             col_name = f"{symbol} | return_skewness_{window_size}"
@@ -740,7 +751,7 @@ def return_kurtosis(dataframe: pd.DataFrame, config: Dict[str, Any]) -> pd.DataF
             log_returns = np.log(close.where(close > 0, np.nan)).diff()
             
             # Calculate rolling kurtosis of log returns
-            return_kurt = log_returns.rolling(window=window_size, min_periods=window_size).kurt()
+            return_kurt = log_returns.rolling(window=window_size).kurt()
             
             # Create column name for return kurtosis values
             col_name = f"{symbol} | return_kurtosis_{window_size}"
@@ -821,9 +832,9 @@ def csi(dataframe: pd.DataFrame, config: Dict[str, Any]) -> pd.DataFrame:
             
             # Normalize close price in rolling window
             close = dataframe[pair_col]
-            rolling_mean = close.rolling(window=window_size, min_periods=1).mean()
-            rolling_std = close.rolling(window=window_size, min_periods=1).std()
-            normalized = (close - rolling_mean) / (rolling_std + 1e-6)
+            rolling_mean = close.rolling(window=window_size).mean()
+            rolling_std = close.rolling(window=window_size).std()
+            normalized = np.where(rolling_std == 0, 0, (close - rolling_mean) / rolling_std)
             
             # Adjust based on currency position in pair
             base, quote = pair[:3].upper(), pair[3:].upper()
@@ -1076,10 +1087,7 @@ def pair_correlations(dataframe: pd.DataFrame, config: Dict[str, Any]) -> pd.Dat
         try:
             # Calculate rolling correlation using vectorized operations
             # Use pandas rolling correlation for efficiency
-            correlation = dataframe[col1].rolling(
-                window=window_size, 
-                min_periods=1
-            ).corr(dataframe[col2])
+            correlation = dataframe[col1].rolling(window=window_size).corr(dataframe[col2])
             
             # Create column name
             col_name = f"{pair1}_{pair2}_correlation_{window_size}"

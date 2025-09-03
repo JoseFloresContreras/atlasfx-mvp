@@ -63,9 +63,6 @@ def load_and_merge_csvs_from_folder(folder_path: str) -> Tuple[pd.DataFrame, Lis
                 })
                 continue
             
-            # Add source file column
-            df['source_file'] = csv_file
-            
             dataframes.append(df)
             
         except Exception as e:

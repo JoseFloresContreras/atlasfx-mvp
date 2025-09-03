@@ -24,32 +24,32 @@ merge:
       folder_path: data/raw-tick-data/raw data/audusd
     - symbol: eurusd
       folder_path: data/raw-tick-data/raw data/eurusd
-    # - symbol: gbpusd
-    #   folder_path: data/raw-tick-data/raw data/gbpusd
-    # - symbol: usdjpy
-    #   folder_path: data/raw-tick-data/raw data/usdjpy
+    - symbol: gbpusd
+      folder_path: data/raw-tick-data/raw data/gbpusd
+    - symbol: usdjpy
+      folder_path: data/raw-tick-data/raw data/usdjpy
     - symbol: usdcad
       folder_path: data/raw-tick-data/raw data/usdcad
-    # - symbol: usdchf
-    #   folder_path: data/raw-tick-data/raw data/usdchf
-    # - symbol: nzdusd
-    #   folder_path: data/raw-tick-data/raw data/nzdusd
+    - symbol: usdchf
+      folder_path: data/raw-tick-data/raw data/usdchf
+    - symbol: nzdusd
+      folder_path: data/raw-tick-data/raw data/nzdusd
   
   # List of instruments and their corresponding folder paths to process
   instruments:
     - symbol: ftse100
       folder_path: data/raw-tick-data/raw instruments/ftse100
-    # - symbol: dowjones
-    #   folder_path: data/raw-tick-data/raw instruments/dowjones
-    # - symbol: xauusd
-    #   folder_path: data/raw-tick-data/raw instruments/xauusd
+    - symbol: dowjones
+      folder_path: data/raw-tick-data/raw instruments/dowjones
+    - symbol: xauusd
+      folder_path: data/raw-tick-data/raw instruments/xauusd
 
 # Step 2: First Clean Configuration (for tick data)
 clean_ticks:
 
 # Step 3: Aggregate Configuration
 aggregate:
-  time_window: 1H  # Options: 30S, 1min, 5min, 15min, 30min, 1H, 4H, 1D, 1W
+  time_window: 5min  # Options: 30S, 1min, 5min, 15min, 30min, 1h, 4h, 1D, 1W
   output_filename: forex_data
   aggregators:
     - tick_count
@@ -59,7 +59,7 @@ aggregate:
     - close
     # - mean
     # - spread
-    # - volume
+    - volume
     # - volatility
     - vwap
     - ofi
@@ -88,7 +88,6 @@ featurize:
     tokyo_session:
     london_session:
     ny_session:
-    weekend:
     vwap_deviation:
     ofi_rolling_mean:
       window_size: 14
@@ -112,12 +111,15 @@ featurize:
     pair_correlations:
       window_size: 30
       pairs:
-        - [audusd, eurusd]
+        - [eurusd, gbpusd]
+        - [eurusd, audusd]
+        - [gbpusd, audusd]
+        - [audusd, nzdusd]
+        - [usdjpy, usdchf]
+        - [eurusd, usdjpy]
         - [audusd, usdcad]
     minute_of_day:
     day_of_week:
-    week_of_month:
-    month_of_year:
 
 
 # Step 8: Final Clean Configuration (for featurized data)
@@ -125,6 +127,7 @@ clean_featurized:
 
 # Step 9: Normalization Configuration
 normalize:
+  clip_threshold: 4.0  # Clip values with magnitude greater than this threshold after normalization
 
 # Step 10: Visualization Configuration
 visualize:

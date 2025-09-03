@@ -1,9 +1,6 @@
-data
-archived
+data/
+archived/
 *.code-workspace
-logs/*
+logs/
 .DS_Store
-coverage*
 .venv/
-test_data/*
-test_report.md

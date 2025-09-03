@@ -392,7 +392,8 @@ def generate_normalize_config(pipeline_config: Dict[str, Any], input_files: List
     normalize_config = {
         'input_files': input_files,
         'output_directory': pipeline_config['output_directory'],
-        'time_window': pipeline_config['aggregate']['time_window']  # Keep for pickle file naming
+        'time_window': pipeline_config['aggregate']['time_window'],
+        'clip_threshold': pipeline_config['normalize']['clip_threshold']  # Keep for pickle file naming
     }
     
     return normalize_config

@@ -357,6 +357,7 @@ def clean_data(data: pd.DataFrame, time_column: str) -> pd.DataFrame:
         
         # Get the feature column
         feature_data = cleaned_data[feature]
+        feature_data = feature_data.replace([np.inf, -np.inf], np.nan)
         
         # Count missing values before cleaning
         missing_before = feature_data.isna().sum()
@@ -393,7 +394,7 @@ def clean_data(data: pd.DataFrame, time_column: str) -> pd.DataFrame:
         missing_after = cleaned_data[feature].isna().sum()
         cleaned_count = missing_before - missing_after
         
-        log.info(f"    ✅ Cleaned {cleaned_count} missing values in {feature}")
+        log.info(f"    ✅ Cleaned {cleaned_count} missing values in {feature}, {missing_before} missing before, {missing_after} missing after")
         total_cleaned_values += cleaned_count
     
     log.info(f"\n🎉 Data cleaning completed! Total values cleaned: {total_cleaned_values}")
