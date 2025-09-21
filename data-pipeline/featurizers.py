@@ -536,10 +536,6 @@ def bipower_variation_features(dataframe: pd.DataFrame, config: Dict[str, Any]) 
 
             jump = (rv - bv).clip(lower=0)
 
-            # Replace 0 with NaN and take normal log difference
-            bv = np.log1p(bv)
-            jump = np.log1p(jump)
-
             out[f"{symbol} | bipower_variation_continuous_{window_size}"] = bv.astype(np.float32)
             out[f"{symbol} | bipower_variation_jump_{window_size}"] = jump.astype(np.float32)
 

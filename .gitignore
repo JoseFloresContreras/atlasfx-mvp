@@ -4,3 +4,6 @@ archived/
 logs/
 .DS_Store
 .venv/
+.pytest_cache
+agent/TD3/learning_curves
+agent/TD3/results

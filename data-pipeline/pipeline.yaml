@@ -83,7 +83,7 @@ clean_aggregated:
 # Step 7: Featurize Configuration
 featurize:
   featurizers:
-    log_pct_change:
+    # log_pct_change:
     sydney_session:
     tokyo_session:
     london_session:
@@ -91,7 +91,9 @@ featurize:
     vwap_deviation:
     ofi_rolling_mean:
       window_size: 14
-    atr_log_pct_change:
+    # atr_log_pct_change:
+      # window_size: 14
+    atr:
       window_size: 14
     bipower_variation_features:
       window_size: 30
