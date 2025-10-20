@@ -117,17 +117,19 @@ Note: Update the time window in `pipeline.yaml` if you want different granularit
 
 ### 2. Configure Agent
 
-Edit `agent/TD3/main.py` if needed:
+The current `agent/TD3/main.py` configuration uses these parameters:
 ```python
 env = ForexTradingEnv(
     data_path="../../data-pipeline/data/1H_forex_data_train.parquet",
     episode_length=100,
-    initial_balance=1,  # Normalized balance for RL training
+    initial_balance=1,  # Note: Set to 1 instead of default 10000 for normalized rewards
     transaction_fee=0.0001,
     max_position_size=0.1,
     add_noise=False
 )
 ```
+
+**Note on initial_balance**: The code uses `initial_balance=1` instead of the default `10000.0`. This normalization helps the RL agent by keeping reward scales manageable. The actual dollar value doesn't affect the learning, only the relative changes matter. You can use either value, but if you change it, adjust your reward expectations accordingly.
 
 ### 3. Train Agent
 
