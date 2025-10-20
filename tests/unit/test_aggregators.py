@@ -46,7 +46,8 @@ class TestBasicAggregators:
         """Test mean aggregator with empty DataFrame."""
         start_time = pd.Timestamp("2024-01-01 00:00:00", tz="UTC")
         duration = pd.Timedelta(minutes=5)
-        empty_df = pd.DataFrame()
+        # Create empty DataFrame with required columns
+        empty_df = pd.DataFrame(columns=['askPrice', 'bidPrice'])
         
         result = mean(start_time, duration, empty_df)
         
@@ -138,7 +139,9 @@ class TestVolumeAggregators:
         
         assert isinstance(result, dict)
         assert 'volume' in result
-        assert result['volume'] == pytest.approx(sample_tick_data['volume'].sum())
+        # Volume is sum of askVolume and bidVolume
+        expected_volume = sample_tick_data['askVolume'].sum() + sample_tick_data['bidVolume'].sum()
+        assert result['volume'] == pytest.approx(expected_volume)
 
 
 class TestMicrostructureAggregators:
@@ -155,9 +158,10 @@ class TestMicrostructureAggregators:
         assert 'vwap' in result
         assert not np.isnan(result['vwap'])
         
-        # VWAP should be weighted average of mid prices
+        # VWAP should be weighted average of mid prices by total volume
         mid_prices = (sample_tick_data['askPrice'] + sample_tick_data['bidPrice']) / 2
-        expected_vwap = (mid_prices * sample_tick_data['volume']).sum() / sample_tick_data['volume'].sum()
+        total_volumes = sample_tick_data['askVolume'] + sample_tick_data['bidVolume']
+        expected_vwap = (mid_prices * total_volumes).sum() / total_volumes.sum()
         assert result['vwap'] == pytest.approx(expected_vwap)
     
     def test_ofi_with_data(self, sample_tick_data):
@@ -169,9 +173,9 @@ class TestMicrostructureAggregators:
         
         assert isinstance(result, dict)
         assert 'ofi' in result
-        # OFI can be NaN if not enough data, but if present should be numeric
-        if not np.isnan(result['ofi']):
-            assert isinstance(result['ofi'], (int, float))
+        # OFI should be a numeric value (can be positive, negative, or zero)
+        assert isinstance(result['ofi'], (int, float, np.integer, np.floating))
+        assert not np.isnan(result['ofi'])
     
     def test_micro_price_with_data(self, sample_tick_data):
         """Test micro_price aggregator with valid data."""
@@ -184,9 +188,11 @@ class TestMicrostructureAggregators:
         assert 'micro_price' in result
         assert not np.isnan(result['micro_price'])
         
-        # Micro price should be between bid and ask
-        assert result['micro_price'] >= sample_tick_data['bidPrice'].min()
-        assert result['micro_price'] <= sample_tick_data['askPrice'].max()
+        # Micro price should be between the min bid and max ask across all ticks
+        # (it's a volume-weighted price that should fall within the bid-ask range)
+        min_price = sample_tick_data['bidPrice'].min()
+        max_price = sample_tick_data['askPrice'].max()
+        assert min_price <= result['micro_price'] <= max_price
 
 
 class TestAggregatorEdgeCases:

@@ -20,7 +20,7 @@ def sample_tick_data():
     Create sample tick data for testing.
     
     Returns:
-        pd.DataFrame: Sample tick data with timestamp, askPrice, bidPrice, volume columns
+        pd.DataFrame: Sample tick data with timestamp, askPrice, bidPrice, askVolume, bidVolume columns
     """
     n_rows = 100
     start_time = pd.Timestamp("2024-01-01 00:00:00", tz="UTC")
@@ -28,11 +28,16 @@ def sample_tick_data():
     # Create timestamps (1 second apart)
     timestamps = [start_time + pd.Timedelta(seconds=i) for i in range(n_rows)]
     
+    # Ensure bid < ask for realistic data
+    bid_prices = np.random.uniform(1.0, 1.1, n_rows)
+    ask_prices = bid_prices + np.random.uniform(0.0001, 0.001, n_rows)  # Small spread
+    
     data = pd.DataFrame({
         'timestamp': [int(ts.timestamp() * 1000) for ts in timestamps],
-        'askPrice': np.random.uniform(1.0, 1.2, n_rows),
-        'bidPrice': np.random.uniform(0.98, 1.18, n_rows),
-        'volume': np.random.uniform(100, 1000, n_rows),
+        'askPrice': ask_prices,
+        'bidPrice': bid_prices,
+        'askVolume': np.random.uniform(100, 1000, n_rows),
+        'bidVolume': np.random.uniform(100, 1000, n_rows),
     })
     
     return data
