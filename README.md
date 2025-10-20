@@ -48,36 +48,63 @@ Risk-Adjusted Returns
 
 ---
 
-## 📊 Current Status: Audit Phase
+## 📊 Current Status: Repository Cleanup Complete
 
-This repository is currently undergoing a comprehensive audit to determine what components are suitable for the MVP. See [AUDIT_REPORT.md](AUDIT_REPORT.md) for the full assessment.
+This repository has been cleaned up and restructured after a comprehensive audit. See [docs/AUDIT_REPORT.md](docs/AUDIT_REPORT.md) for the full assessment.
 
-**Summary of Findings:**
-- ✅ **Data Pipeline:** Solid foundation, needs refactoring (add types, tests, validation)
-- ⚠️ **Agent:** Uses TD3 instead of required SAC; needs reimplementation
-- ❌ **Missing:** VAE and TFT components not yet implemented
-- 🔧 **Next Steps:** Follow the [MVP_ACTION_PLAN.md](MVP_ACTION_PLAN.md) for implementation
+**Cleanup Summary:**
+- ✅ **Removed:** TD3 agent implementation (wrong algorithm - needs SAC)
+- ✅ **Removed:** Large exploratory Jupyter notebook (5.6MB)
+- ✅ **Organized:** All documentation moved to `docs/` folder
+- ✅ **Kept:** Data pipeline (solid foundation for MVP)
+- ✅ **Added:** Data storage analysis document
+
+**Current State:**
+- ✅ **Data Pipeline:** Solid foundation, ready for refactoring (add types, tests, validation)
+- 📝 **Documentation:** Complete architecture, features, action plan, and data storage analysis
+- 🔧 **Next Steps:** Follow [docs/MVP_ACTION_PLAN.md](docs/MVP_ACTION_PLAN.md) to implement VAE, TFT, and SAC
 
 ---
 
 ## 📁 Repository Structure
 
+**Current Structure (Post-Cleanup):**
 ```
 atlasfx-mvp/
-├── agent/                    # Current: TD3 implementation (to be replaced with SAC)
-├── data-pipeline/            # Data processing (to be refactored)
-├── AUDIT_REPORT.md          # Comprehensive repository assessment ✅
-├── ARCHITECTURE.md          # System architecture documentation ✅
-├── FEATURES.md              # Feature engineering documentation ✅
-├── MVP_ACTION_PLAN.md       # 12-18 week implementation roadmap ✅
-└── README.md                # This file
+├── data-pipeline/            # Data processing pipeline (MVP scope)
+│   ├── pipeline.py           # Orchestration logic
+│   ├── merge.py              # Raw tick data merging
+│   ├── clean.py              # Data cleaning with gap analysis
+│   ├── aggregate.py          # Time-series aggregation
+│   ├── featurize.py          # Feature engineering
+│   ├── featurizers.py        # Feature calculators
+│   ├── aggregators.py        # Aggregation functions
+│   ├── normalize.py          # Normalization
+│   ├── split.py              # Train/val/test split
+│   ├── winsorize.py          # Outlier handling
+│   ├── visualize.py          # Data visualization
+│   ├── logger.py             # Logging utilities
+│   ├── pipeline.yaml         # Pipeline configuration
+│   └── requirements.txt      # Python dependencies
+├── docs/                     # Project documentation
+│   ├── ARCHITECTURE.md       # System architecture ✅
+│   ├── AUDIT_REPORT.md       # Repository assessment ✅
+│   ├── FEATURES.md           # Feature engineering docs ✅
+│   ├── MVP_ACTION_PLAN.md    # Implementation roadmap ✅
+│   ├── NEXT_STEPS.md         # Next steps and decisions ✅
+│   └── DONDE_ALMACENAR_DATOS.md  # Data storage analysis ✅
+└── README.md                 # This file
 ```
 
-**Future Structure (after restructuring):**
+**Removed (Obsolete):**
+- ❌ `agent/TD3/` - Wrong algorithm (TD3 instead of SAC), needs reimplementation
+- ❌ `test.ipynb` - Large exploratory notebook (5.6MB), insights documented
+
+**Future Structure (MVP Implementation):**
 ```
 atlasfx-mvp/
-├── src/atlasfx/             # Main package
-│   ├── data/                # Data pipeline (refactored)
+├── src/atlasfx/             # Main package (to be created)
+│   ├── data/                # Data pipeline (refactored from data-pipeline/)
 │   ├── models/              # VAE, TFT, SAC implementations
 │   ├── environments/        # Trading environment
 │   ├── agents/              # RL agent wrapper
@@ -85,8 +112,8 @@ atlasfx-mvp/
 │   └── config/              # Configuration schemas
 ├── tests/                   # Comprehensive test suite
 ├── experiments/             # MLflow/W&B logs
-├── data/                    # Data (DVC tracked)
-├── docs/                    # Sphinx documentation
+├── data/                    # Data (DVC tracked, see docs/DONDE_ALMACENAR_DATOS.md)
+├── docs/                    # Documentation (current + Sphinx)
 ├── scripts/                 # Training/evaluation scripts
 ├── pyproject.toml           # Dependencies and config
 └── README.md
@@ -159,10 +186,14 @@ pytest tests/integration/ -v
 
 ## 📚 Documentation
 
-- **[AUDIT_REPORT.md](AUDIT_REPORT.md)** - Comprehensive analysis of current codebase
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Detailed system architecture and design decisions
-- **[FEATURES.md](FEATURES.md)** - Complete feature engineering documentation
-- **[MVP_ACTION_PLAN.md](MVP_ACTION_PLAN.md)** - 12-18 week implementation roadmap
+All documentation is now organized in the `docs/` folder:
+
+- **[docs/AUDIT_REPORT.md](docs/AUDIT_REPORT.md)** - Comprehensive analysis of current codebase
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Detailed system architecture and design decisions
+- **[docs/FEATURES.md](docs/FEATURES.md)** - Complete feature engineering documentation
+- **[docs/MVP_ACTION_PLAN.md](docs/MVP_ACTION_PLAN.md)** - 12-18 week implementation roadmap
+- **[docs/NEXT_STEPS.md](docs/NEXT_STEPS.md)** - Next steps and decision points
+- **[docs/DONDE_ALMACENAR_DATOS.md](docs/DONDE_ALMACENAR_DATOS.md)** - Data storage options analysis (DVC + S3 recommended)
 
 ---
 
