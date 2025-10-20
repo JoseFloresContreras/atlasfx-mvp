@@ -193,10 +193,7 @@ All documentation is now organized in the `docs/` folder:
 - **[docs/FEATURES.md](docs/FEATURES.md)** - Complete feature engineering documentation
 - **[docs/MVP_ACTION_PLAN.md](docs/MVP_ACTION_PLAN.md)** - 12-18 week implementation roadmap
 - **[docs/NEXT_STEPS.md](docs/NEXT_STEPS.md)** - Next steps and decision points
-- **[docs/DONDE_ALMACENAR_DATOS.md](docs/DONDE_ALMACENAR_DATOS.md)** - Data storage options analysis (Local vs. Cloud)
-- **[docs/BACKLOG.md](docs/BACKLOG.md)** - 🆕 Future features and ideas backlog
-- **[docs/REPOSITORY_STRUCTURE.md](docs/REPOSITORY_STRUCTURE.md)** - 🆕 Repository structure analysis and recommendations
-- **[docs/MULTI_AGENT_BENCHMARKING.md](docs/MULTI_AGENT_BENCHMARKING.md)** - 🆕 Multi-agent benchmarking strategy (SAC vs. TD3 vs. PPO)
+- **[docs/DONDE_ALMACENAR_DATOS.md](docs/DONDE_ALMACENAR_DATOS.md)** - Data storage options analysis (DVC + S3 recommended)
 
 ---
 
