@@ -36,6 +36,10 @@ dev = [
 requires = ["setuptools>=65.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+packages = ["atlasfx"]
+package-dir = {"" = "src"}
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
@@ -43,7 +47,7 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = [
     "--verbose",
-    "--cov=data-pipeline",
+    "--cov=src/atlasfx",
     "--cov-report=term-missing",
     "--cov-report=html",
 ]

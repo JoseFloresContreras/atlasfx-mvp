@@ -1,6 +1,6 @@
-# Data directories
-data/
-archived/
+# Data directories (but not test directories)
+/data/
+/archived/
 
 # Logs
 logs/
@@ -17,6 +17,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Build artifacts
+build/
+dist/
+*.egg-info/
+src/*.egg-info/
+
 # Testing
 .pytest_cache
 .coverage
@@ -28,7 +34,8 @@ htmlcov/
 *.ipynb
 
 # ML and experiment tracking
-experiments/
+/experiments/*
+!/experiments/.gitkeep
 models/*.pth
 models/*.pt
 *.ckpt
