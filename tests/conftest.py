@@ -24,14 +24,14 @@ def sample_tick_data():
     """
     n_rows = 100
     start_time = pd.Timestamp("2024-01-01 00:00:00", tz="UTC")
-    
+
     # Create timestamps (1 second apart)
     timestamps = [start_time + pd.Timedelta(seconds=i) for i in range(n_rows)]
-    
+
     # Ensure bid < ask for realistic data
     bid_prices = np.random.uniform(1.0, 1.1, n_rows)
     ask_prices = bid_prices + np.random.uniform(0.0001, 0.001, n_rows)  # Small spread
-    
+
     data = pd.DataFrame({
         'timestamp': [int(ts.timestamp() * 1000) for ts in timestamps],
         'askPrice': ask_prices,
@@ -39,7 +39,7 @@ def sample_tick_data():
         'askVolume': np.random.uniform(100, 1000, n_rows),
         'bidVolume': np.random.uniform(100, 1000, n_rows),
     })
-    
+
     return data
 
 
@@ -53,10 +53,10 @@ def sample_aggregated_data():
     """
     n_rows = 50
     start_time = pd.Timestamp("2024-01-01 00:00:00", tz="UTC")
-    
+
     # Create timestamps (5 minutes apart)
     timestamps = [start_time + pd.Timedelta(minutes=5*i) for i in range(n_rows)]
-    
+
     data = pd.DataFrame({
         'start_time': timestamps,
         'tick_count': np.random.randint(10, 100, n_rows),
@@ -68,7 +68,7 @@ def sample_aggregated_data():
         'ofi': np.random.uniform(-0.1, 0.1, n_rows),
         'micro_price': np.random.uniform(1.0, 1.1, n_rows),
     })
-    
+
     data.set_index('start_time', inplace=True)
     return data
 

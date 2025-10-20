@@ -5,10 +5,10 @@ This module handles normalization of feature columns using mean subtraction and 
 """
 
 import os
-import pandas as pd
-import numpy as np
-from typing import Dict, List, Any
 import pickle
+from typing import Any
+
+import pandas as pd
 from logger import log
 
 
@@ -55,7 +55,7 @@ def save_data(df: pd.DataFrame, output_file: str):
         raise Exception(error_msg)
 
 
-def identify_feature_columns(df: pd.DataFrame) -> List[str]:
+def identify_feature_columns(df: pd.DataFrame) -> list[str]:
     """
     Identify feature columns for normalization.
     All columns with '[Feature]' prefix will be normalized.
@@ -68,17 +68,17 @@ def identify_feature_columns(df: pd.DataFrame) -> List[str]:
     """
     # Get all columns
     all_cols = df.columns.tolist()
-    
+
     # Filter columns that contain the word "[Feature]"
     feature_cols = [col for col in all_cols if '[Feature]' in col]
-    
+
     log.info(f"📊 Identified {len(feature_cols)} feature columns for normalization (with '[Feature]' prefix)")
     log.info(f"📋 Feature columns: {feature_cols}")
-    
+
     return feature_cols
 
 
-def compute_normalization_stats(train_df: pd.DataFrame, feature_cols: List[str]) -> Dict[str, Dict[str, float]]:
+def compute_normalization_stats(train_df: pd.DataFrame, feature_cols: list[str]) -> dict[str, dict[str, float]]:
     """
     Compute mean and standard deviation from training data.
     
@@ -90,29 +90,29 @@ def compute_normalization_stats(train_df: pd.DataFrame, feature_cols: List[str])
         Dict[str, Dict[str, float]]: Dictionary with mean and std for each feature
     """
     log.info("📊 Computing normalization statistics from training data...")
-    
+
     stats = {}
     for col in feature_cols:
         # Compute mean and std, handling NaN values
         mean_val = train_df[col].mean()
         std_val = train_df[col].std()
-        
+
         # Handle zero standard deviation
         if std_val == 0:
             log.warning(f"⚠️  Zero standard deviation for column {col}, using std=1")
             std_val = 1.0
-        
+
         stats[col] = {
             'mean': mean_val,
             'std': std_val
         }
-        
+
         log.info(f"  {col}: mean={mean_val:.6f}, std={std_val:.6f}")
-    
+
     return stats
 
 
-def normalize_dataframe(df: pd.DataFrame, feature_cols: List[str], stats: Dict[str, Dict[str, float]], clip_threshold: float = None) -> pd.DataFrame:
+def normalize_dataframe(df: pd.DataFrame, feature_cols: list[str], stats: dict[str, dict[str, float]], clip_threshold: float = None) -> pd.DataFrame:
     """
     Normalize dataframe using pre-computed statistics and optionally clip extreme values.
     
@@ -127,28 +127,28 @@ def normalize_dataframe(df: pd.DataFrame, feature_cols: List[str], stats: Dict[s
         pd.DataFrame: Normalized dataframe
     """
     log.info("📊 Normalizing dataframe...")
-    
+
     # Create a copy to avoid modifying original
     normalized_df = df.copy()
-    
+
     for col in feature_cols:
         if col in stats:
             mean_val = stats[col]['mean']
             std_val = stats[col]['std']
-            
+
             # Apply normalization: (x - mean) / std
             normalized_df[col] = (normalized_df[col] - mean_val) / std_val
-            
+
             log.info(f"  Normalized {col}: mean={normalized_df[col].mean():.6f}, std={normalized_df[col].std():.6f}")
-    
+
     # Apply clipping if threshold is specified
     if clip_threshold is not None:
         log.info(f"✂️  Clipping values with magnitude > {clip_threshold}...")
-        
+
         # Count values before clipping for reporting
         total_values = len(normalized_df) * len(feature_cols)
         clipped_values = 0
-        
+
         for col in feature_cols:
             if col in normalized_df.columns:
                 # Count values that will be clipped
@@ -156,19 +156,19 @@ def normalize_dataframe(df: pd.DataFrame, feature_cols: List[str], stats: Dict[s
                 below_threshold = (normalized_df[col] < -clip_threshold).sum()
                 col_clipped = above_threshold + below_threshold
                 clipped_values += col_clipped
-                
+
                 # Apply clipping
                 normalized_df[col] = normalized_df[col].clip(-clip_threshold, clip_threshold)
-                
+
                 if col_clipped > 0:
                     log.info(f"  Clipped {col}: {col_clipped} values ({(col_clipped/len(normalized_df)*100):.2f}%)")
-        
+
         log.info(f"✂️  Total clipped values: {clipped_values} ({(clipped_values/total_values*100):.2f}% of all feature values)")
-    
+
     return normalized_df
 
 
-def save_normalization_stats(stats: Dict[str, Dict[str, float]], output_directory: str, time_window: str):
+def save_normalization_stats(stats: dict[str, dict[str, float]], output_directory: str, time_window: str):
     """
     Save normalization statistics to file.
     
@@ -178,7 +178,7 @@ def save_normalization_stats(stats: Dict[str, Dict[str, float]], output_director
         time_window (str): Time window used for aggregation
     """
     stats_file = os.path.join(output_directory, f"{time_window}_normalization_stats.pkl")
-    
+
     try:
         with open(stats_file, 'wb') as f:
             pickle.dump(stats, f)
@@ -189,7 +189,7 @@ def save_normalization_stats(stats: Dict[str, Dict[str, float]], output_director
         raise Exception(error_msg)
 
 
-def run_normalize(config: Dict[str, Any]):
+def run_normalize(config: dict[str, Any]):
     """
     Run the normalization pipeline for train/val/test datasets.
     
@@ -198,65 +198,65 @@ def run_normalize(config: Dict[str, Any]):
     """
     try:
         log.info("🎯 Starting normalization pipeline...")
-        
+
         # Extract configuration
         input_files = config['input_files']
         output_directory = config['output_directory']
         time_window = config.get('time_window', None)
         clip_threshold = config.get('clip_threshold', None)
-        
+
         # Find train file and load it
         train_file = None
         for input_file in input_files:
             if 'train.parquet' in input_file:
                 train_file = input_file
                 break
-        
+
         if train_file is None:
             error_msg = "Train file not found. Cannot proceed with normalization."
             log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
             raise ValueError(error_msg)
-        
+
         # Load training data to calculate parameters
         log.info(f"📊 Loading training data from: {os.path.basename(train_file)}")
         train_df = load_data(train_file)
-        
+
         # Identify feature columns
         log.info("📊 Identifying feature columns for normalization...")
         feature_cols = identify_feature_columns(train_df)
-        
+
         if not feature_cols:
             error_msg = "No feature columns found for normalization."
             log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
             raise ValueError(error_msg)
-        
+
         # Compute normalization statistics from training data
         log.info("📊 Computing normalization statistics...")
         normalization_stats = compute_normalization_stats(train_df, feature_cols)
-        
+
         # Save normalization statistics
         log.info("💾 Saving normalization statistics...")
         save_normalization_stats(normalization_stats, output_directory, time_window)
-        
+
         # Process each input file
         log.info("📊 Normalizing datasets...")
         for input_file in input_files:
             log.info(f"📊 Processing: {os.path.basename(input_file)}")
-            
+
             # Load data
             df = load_data(input_file)
-            
+
             # Normalize data with optional clipping
             normalized_df = normalize_dataframe(df, feature_cols, normalization_stats, clip_threshold)
-            
+
             # Save with same filename
             save_data(normalized_df, input_file)
-            
+
             log.info(f"✅ Normalized and saved: {os.path.basename(input_file)}")
-        
+
         log.info("✅ Normalization pipeline completed successfully!")
-        log.info(f"📊 Normalization statistics saved for future use")
-        
+        log.info("📊 Normalization statistics saved for future use")
+
     except Exception as e:
         error_msg = f"Normalization pipeline failed: {e}"
         log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
@@ -268,7 +268,7 @@ if __name__ == "__main__":
     config = {
         'input_files': [
             'data/5min_forex_data_train.parquet',
-            'data/5min_forex_data_val.parquet', 
+            'data/5min_forex_data_val.parquet',
             'data/5min_forex_data_test.parquet'
         ],
         'output_directory': 'data',
@@ -277,5 +277,5 @@ if __name__ == "__main__":
             'clip_threshold': 3.0  # Clip values with magnitude > 3.0
         }
     }
-    
-    run_normalize(config) 
+
+    run_normalize(config)
