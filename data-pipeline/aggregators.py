@@ -302,7 +302,7 @@ def ofi(start_time: pd.Timestamp, duration: pd.Timedelta, data: pd.DataFrame) ->
     tick_direction[0] = 0
     
     # Forward fill the unchanged prices (NaN values) with previous direction
-    tick_direction = pd.Series(tick_direction).fillna(method='ffill').fillna(0).astype(int).values
+    tick_direction = pd.Series(tick_direction).ffill().fillna(0).astype(int).values
 
     # Calculate OFI as the sum of (tick_direction * volume)
     # Drop first volume element since tick_direction corresponds to price differences
