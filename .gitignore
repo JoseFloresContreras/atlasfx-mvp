@@ -1,9 +1,38 @@
+# Data directories
 data/
 archived/
-*.code-workspace
+
+# Logs
 logs/
+
+# IDE and workspace
+*.code-workspace
 .DS_Store
+
+# Python virtual environment
 .venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Testing
 .pytest_cache
-agent/TD3/learning_curves
-agent/TD3/results
+.coverage
+htmlcov/
+.tox/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# ML and experiment tracking
+experiments/
+models/*.pth
+models/*.pt
+*.ckpt
+
+# DVC
+.dvc/cache
+.dvc/tmp
