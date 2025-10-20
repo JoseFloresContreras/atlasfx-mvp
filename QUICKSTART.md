@@ -14,7 +14,7 @@ Get up and running with Atlas FX MVP in minutes.
 ### Option 1: Automated Setup (Recommended)
 
 ```bash
-# Clone the repository
+# Clone the repository (update URL to your actual repository)
 git clone https://github.com/JoseFloresContreras/atlasfx-mvp.git
 cd atlasfx-mvp
 
@@ -25,7 +25,7 @@ cd atlasfx-mvp
 ### Option 2: Manual Setup
 
 ```bash
-# Clone the repository
+# Clone the repository (update URL to your actual repository)
 git clone https://github.com/JoseFloresContreras/atlasfx-mvp.git
 cd atlasfx-mvp
 
@@ -105,24 +105,27 @@ Expected output:
 
 ### 1. Verify Data
 
-Ensure pipeline produced:
+Ensure pipeline produced (example with 1H time window):
 ```
 data/
-├── 5min_forex_data_train.parquet
-├── 5min_forex_data_val.parquet
-└── 5min_forex_data_test.parquet
+├── 1H_forex_data_train.parquet
+├── 1H_forex_data_val.parquet
+└── 1H_forex_data_test.parquet
 ```
+
+Note: Update the time window in `pipeline.yaml` if you want different granularity (5min, 15min, etc.)
 
 ### 2. Configure Agent
 
 Edit `agent/TD3/main.py` if needed:
 ```python
 env = ForexTradingEnv(
-    data_path="../../data-pipeline/data/5min_forex_data_train.parquet",
+    data_path="../../data-pipeline/data/1H_forex_data_train.parquet",
     episode_length=100,
-    initial_balance=10000,
+    initial_balance=1,  # Normalized balance for RL training
     transaction_fee=0.0001,
-    max_position_size=0.1
+    max_position_size=0.1,
+    add_noise=False
 )
 ```
 
@@ -206,7 +209,7 @@ pip install -r data-pipeline/requirements.txt
 cd data-pipeline
 python -c "
 import pandas as pd
-df = pd.read_parquet('data/5min_forex_data_train.parquet')
+df = pd.read_parquet('data/1H_forex_data_train.parquet')
 print(f'Shape: {df.shape}')
 print(f'Columns: {len(df.columns)}')
 print(f'Features: {len([c for c in df.columns if \"[Feature]\" in c])}')
@@ -226,7 +229,7 @@ Features: 120
 cd agent/TD3
 python -c "
 from env import ForexTradingEnv
-env = ForexTradingEnv(data_path='../../data-pipeline/data/5min_forex_data_train.parquet')
+env = ForexTradingEnv(data_path='../../data-pipeline/data/1H_forex_data_train.parquet')
 obs = env.reset()
 print(f'Observation shape: {obs.shape}')
 print('✅ Environment working')
