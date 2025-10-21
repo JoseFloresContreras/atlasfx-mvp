@@ -1,0 +1,32 @@
+# Minimal pipeline configuration for e2e testing
+# This is a lightweight configuration that validates the pipeline works end-to-end
+
+pipeline:
+  name: "E2E Test Pipeline"
+  description: "Minimal end-to-end test for CI validation"
+  version: "1.0"
+
+# Steps to execute - minimal set for validation
+steps: [merge]
+
+# Output directory for test run
+output_directory: tests/fixtures/e2e_test_output
+
+# Step 1: Merge Configuration
+merge:
+  time_column: timestamp
+  # Single pair for minimal testing
+  pairs:
+    - symbol: testusd
+      folder_path: tests/fixtures/e2e_test_data
+  instruments: []
+
+# Step 2: Aggregate Configuration
+aggregate:
+  time_window: 1min
+  output_filename: test_data
+  aggregators:
+    - high
+    - low
+    - close
+    - volume

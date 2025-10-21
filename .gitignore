@@ -28,6 +28,7 @@ src/*.egg-info/
 .coverage
 htmlcov/
 .tox/
+tests/fixtures/e2e_test_output/
 
 # Jupyter Notebooks
 .ipynb_checkpoints/
