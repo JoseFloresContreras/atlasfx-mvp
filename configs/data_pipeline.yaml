@@ -1,0 +1,135 @@
+# Pipeline configuration for end-to-end data processing
+# This orchestrates the complete workflow: merge -> clean -> aggregate -> clean
+
+# Pipeline metadata
+pipeline:
+  name: "Forex Data Processing Pipeline"
+  description: "Process raw tick data through merge, clean, aggregate, and final clean steps"
+  version: "1.0"
+
+# Steps to execute in order (available: merge, clean_ticks, aggregate, split, winsorize, clean_aggregated, featurize, clean_featurized, normalize, visualize)
+# steps: [merge, clean_ticks, aggregate, split, winsorize, clean_aggregated, featurize, clean_featurized, normalize, visualize]
+# steps: [split, winsorize, clean_aggregated, featurize, clean_featurized, normalize, visualize]
+steps: [merge, clean_ticks, aggregate, split, winsorize, clean_aggregated, featurize, clean_featurized, normalize, visualize]
+
+# Global output directory for all stages
+output_directory: data
+
+# Step 1: Merge Configuration
+merge:
+  time_column: timestamp
+  # List of pairs and their corresponding folder paths to process
+  pairs:
+    - symbol: audusd
+      folder_path: data/raw-tick-data/raw data/audusd
+    - symbol: eurusd
+      folder_path: data/raw-tick-data/raw data/eurusd
+    - symbol: gbpusd
+      folder_path: data/raw-tick-data/raw data/gbpusd
+    - symbol: usdjpy
+      folder_path: data/raw-tick-data/raw data/usdjpy
+    - symbol: usdcad
+      folder_path: data/raw-tick-data/raw data/usdcad
+    - symbol: usdchf
+      folder_path: data/raw-tick-data/raw data/usdchf
+    - symbol: nzdusd
+      folder_path: data/raw-tick-data/raw data/nzdusd
+  
+  # List of instruments and their corresponding folder paths to process
+  instruments:
+    - symbol: ftse100
+      folder_path: data/raw-tick-data/raw instruments/ftse100
+    - symbol: dowjones
+      folder_path: data/raw-tick-data/raw instruments/dowjones
+    - symbol: xauusd
+      folder_path: data/raw-tick-data/raw instruments/xauusd
+
+# Step 2: First Clean Configuration (for tick data)
+clean_ticks:
+
+# Step 3: Aggregate Configuration
+aggregate:
+  time_window: 5min  # Options: 30S, 1min, 5min, 15min, 30min, 1h, 4h, 1D, 1W
+  output_filename: forex_data
+  aggregators:
+    - tick_count
+    # - open
+    - high
+    - low
+    - close
+    # - mean
+    # - spread
+    - volume
+    # - volatility
+    - vwap
+    - ofi
+    - micro_price
+
+# Step 4: Split Configuration
+split:
+  train: 0.7 
+  val: 0.15
+  test: 0.15
+
+# Step 5: Winsorization Configuration
+winsorize:
+  - aggregations: [tick_count, spread, volatility, volume]
+    high: 0.99
+    low: 0.0
+
+# Step 6: Final Clean Configuration (for aggregated data)
+clean_aggregated:
+
+# Step 7: Featurize Configuration
+featurize:
+  featurizers:
+    # log_pct_change:
+    sydney_session:
+    tokyo_session:
+    london_session:
+    ny_session:
+    vwap_deviation:
+    ofi_rolling_mean:
+      window_size: 14
+    # atr_log_pct_change:
+      # window_size: 14
+    atr:
+      window_size: 14
+    bipower_variation_features:
+      window_size: 30
+    volatility_ratio:
+      short_window: 14
+      long_window: 60
+    rsi:
+      window_size: 14
+    bollinger_width:
+      window_size: 20
+    return_skewness:
+      window_size: 60
+    return_kurtosis:
+      window_size: 60
+    csi:
+      window_size: 14
+    pair_correlations:
+      window_size: 30
+      pairs:
+        - [eurusd, gbpusd]
+        - [eurusd, audusd]
+        - [gbpusd, audusd]
+        - [audusd, nzdusd]
+        - [usdjpy, usdchf]
+        - [eurusd, usdjpy]
+        - [audusd, usdcad]
+    minute_of_day:
+    day_of_week:
+
+
+# Step 8: Final Clean Configuration (for featurized data)
+clean_featurized:
+
+# Step 9: Normalization Configuration
+normalize:
+  clip_threshold: 4.0  # Clip values with magnitude greater than this threshold after normalization
+
+# Step 10: Visualization Configuration
+visualize:

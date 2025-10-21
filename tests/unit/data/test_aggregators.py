@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 
 # Import aggregator functions
-from aggregators import (
+from atlasfx.data.aggregators import (
     mean,
     high,
     low,
