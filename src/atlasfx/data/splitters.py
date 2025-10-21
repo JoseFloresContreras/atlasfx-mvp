@@ -16,10 +16,10 @@ from atlasfx.utils.logging import log
 def load_data(input_file: str) -> pd.DataFrame:
     """
     Load data from parquet file.
-    
+
     Args:
         input_file (str): Path to input parquet file
-        
+
     Returns:
         pd.DataFrame: Loaded data
     """
@@ -38,25 +38,27 @@ def load_data(input_file: str) -> pd.DataFrame:
         raise Exception(error_msg)
 
 
-def split_data(df: pd.DataFrame, split_config: dict[str, float], output_directory: str, base_filename: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def split_data(
+    df: pd.DataFrame, split_config: dict[str, float], output_directory: str, base_filename: str
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Split data into train, validation, and test sets.
-    
+
     Args:
         df (pd.DataFrame): Input dataframe
         split_config (dict[str, float]): Split configuration with train, val, test ratios
         output_directory (str): Output directory for saving splits
         base_filename (str): Base filename without extension
-        
+
     Returns:
         tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]: Train, validation, and test dataframes
     """
     log.info("✂️  Splitting data into train/validation/test sets...")
 
     # Get split ratios
-    train_ratio = split_config.get('train', 0.7)
-    val_ratio = split_config.get('val', 0.15)
-    test_ratio = split_config.get('test', 0.15)
+    train_ratio = split_config.get("train", 0.7)
+    val_ratio = split_config.get("val", 0.15)
+    test_ratio = split_config.get("test", 0.15)
 
     # Validate ratios
     total_ratio = train_ratio + val_ratio + test_ratio
@@ -66,14 +68,18 @@ def split_data(df: pd.DataFrame, split_config: dict[str, float], output_director
         val_ratio /= total_ratio
         test_ratio /= total_ratio
 
-    log.info(f"📊 Split ratios - Train: {train_ratio:.1%}, Val: {val_ratio:.1%}, Test: {test_ratio:.1%}")
+    log.info(
+        f"📊 Split ratios - Train: {train_ratio:.1%}, Val: {val_ratio:.1%}, Test: {test_ratio:.1%}"
+    )
 
     # First split: train + temp, test
     train_temp, test_df = train_test_split(df, test_size=test_ratio, random_state=42, shuffle=False)
 
     # Second split: train, validation
     val_ratio_adjusted = val_ratio / (train_ratio + val_ratio)
-    train_df, val_df = train_test_split(train_temp, test_size=val_ratio_adjusted, random_state=42, shuffle=False)
+    train_df, val_df = train_test_split(
+        train_temp, test_size=val_ratio_adjusted, random_state=42, shuffle=False
+    )
 
     log.info("✅ Split complete:")
     log.info(f"   Train: {len(train_df):,} rows ({len(train_df)/len(df)*100:.1f}%)")
@@ -100,7 +106,7 @@ def split_data(df: pd.DataFrame, split_config: dict[str, float], output_director
 def run_split(config: dict[str, Any]):
     """
     Run the data splitting pipeline.
-    
+
     Args:
         config (dict[str, Any]): Configuration dictionary
     """
@@ -108,9 +114,9 @@ def run_split(config: dict[str, Any]):
         log.info("✂️  Starting data splitting pipeline...")
 
         # Extract configuration
-        input_file = config['input_file']
-        output_directory = config['output_directory']
-        split_config = config.get('split', {'train': 0.7, 'val': 0.15, 'test': 0.15})
+        input_file = config["input_file"]
+        output_directory = config["output_directory"]
+        split_config = config.get("split", {"train": 0.7, "val": 0.15, "test": 0.15})
 
         # Extract base filename from input file
         base_filename = os.path.splitext(os.path.basename(input_file))[0]
@@ -132,13 +138,9 @@ def run_split(config: dict[str, Any]):
 if __name__ == "__main__":
     # Example usage
     config = {
-        'input_file': 'data/1H_forex_data_cleaned.parquet',
-        'output_directory': 'data',
-        'split': {
-            'train': 0.7,
-            'val': 0.15,
-            'test': 0.15
-        }
+        "input_file": "data/1H_forex_data_cleaned.parquet",
+        "output_directory": "data",
+        "split": {"train": 0.7, "val": 0.15, "test": 0.15},
     }
 
     run_split(config)

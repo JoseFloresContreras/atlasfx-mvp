@@ -17,7 +17,7 @@ class CustomLogger:
     def __init__(self, log_directory: str = "logs"):
         """
         Initialize the custom logger.
-        
+
         Args:
             log_directory (str): Directory to store log files
         """
@@ -35,7 +35,7 @@ class CustomLogger:
         log_filepath = os.path.join(self.log_directory, log_filename)
 
         # Create logger
-        self.logger = logging.getLogger('atlasfx_pipeline')
+        self.logger = logging.getLogger("atlasfx_pipeline")
         self.logger.setLevel(logging.DEBUG)
 
         # Clear any existing handlers
@@ -43,12 +43,11 @@ class CustomLogger:
 
         # Create formatter with Unicode support
         formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
         )
 
         # File handler with Unicode support
-        file_handler = logging.FileHandler(log_filepath, encoding='utf-8')
+        file_handler = logging.FileHandler(log_filepath, encoding="utf-8")
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(formatter)
 
@@ -70,7 +69,7 @@ class CustomLogger:
     def debug(self, message: str, also_print: bool = False):
         """
         Log a debug message.
-        
+
         Args:
             message (str): Debug message to log
             also_print (bool): Whether to also print to console (default: False)
@@ -82,7 +81,7 @@ class CustomLogger:
     def info(self, message: str, also_print: bool = False):
         """
         Log an info message.
-        
+
         Args:
             message (str): Info message to log
             also_print (bool): Whether to also print to console (default: False)
@@ -94,7 +93,7 @@ class CustomLogger:
     def warning(self, message: str, also_print: bool = False):
         """
         Log a warning message.
-        
+
         Args:
             message (str): Warning message to log
             also_print (bool): Whether to also print to console (default: False)
@@ -106,7 +105,7 @@ class CustomLogger:
     def error(self, message: str, also_print: bool = False):
         """
         Log an error message.
-        
+
         Args:
             message (str): Error message to log
             also_print (bool): Whether to also print to console (default: False)
@@ -118,7 +117,7 @@ class CustomLogger:
     def critical(self, message: str, also_print: bool = False):
         """
         Log a critical message.
-        
+
         Args:
             message (str): Critical message to log
             also_print (bool): Whether to also print to console (default: False)
@@ -130,7 +129,7 @@ class CustomLogger:
     def get_log_filepath(self) -> str:
         """
         Get the current log file path.
-        
+
         Returns:
             str: Path to the current log file
         """

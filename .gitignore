@@ -43,3 +43,44 @@ models/*.pt
 # DVC
 .dvc/cache
 .dvc/tmp
+# Additional IDE patterns
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Additional Python patterns
+*.so
+.eggs/
+
+# Additional testing patterns
+.hypothesis/
+.mypy_cache/
+.ruff_cache/
+coverage.xml
+*.cover
+
+# Additional ML patterns
+mlruns/
+wandb/
+
+# Temporary files
+*.tmp
+*.temp
+Thumbs.db
+
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+secrets/
+
+# Documentation builds
+docs/_build/
+site/
+
+# Additional logs
+*.log

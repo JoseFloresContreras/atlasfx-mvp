@@ -12,10 +12,10 @@ from atlasfx.utils.logging import log
 def load_config(config_file="featurize.yaml"):
     """
     Load configuration from YAML file.
-    
+
     Args:
         config_file (str): Path to the YAML configuration file
-        
+
     Returns:
         dict: Configuration dictionary
     """
@@ -32,13 +32,14 @@ def load_config(config_file="featurize.yaml"):
         log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
         raise yaml.YAMLError(error_msg)
 
+
 def load_featurizers(featurizer_names: list[str]) -> dict[str, Callable]:
     """
     Dynamically load featurizer functions from featurizers.py.
-    
+
     Args:
         featurizer_names (list[str]): List of featurizer function names to load
-        
+
     Returns:
         dict[str, Callable]: Dictionary mapping featurizer names to functions
     """
@@ -57,15 +58,20 @@ def load_featurizers(featurizer_names: list[str]) -> dict[str, Callable]:
 
     return featurizers
 
-def featurize_data(data: pd.DataFrame, featurizers_config: dict[str, dict[str, Any]], featurizers: dict[str, Callable]) -> pd.DataFrame:
+
+def featurize_data(
+    data: pd.DataFrame,
+    featurizers_config: dict[str, dict[str, Any]],
+    featurizers: dict[str, Callable],
+) -> pd.DataFrame:
     """
     Apply featurizers to the input dataframe with their specific configurations.
-    
+
     Args:
         data (pd.DataFrame): Input dataframe with time index
         featurizers_config (dict[str, dict[str, Any]]): Dictionary mapping featurizer names to their configurations
         featurizers (dict[str, Callable]): Dictionary of featurizer functions
-        
+
     Returns:
         pd.DataFrame: Featurized data with original columns plus new features
     """
@@ -118,18 +124,12 @@ def featurize_data(data: pd.DataFrame, featurizers_config: dict[str, dict[str, A
         merged_featurizers = all_featurizer_results[0]
         for feat_result in all_featurizer_results[1:]:
             merged_featurizers = merged_featurizers.merge(
-                feat_result,
-                left_index=True,
-                right_index=True,
-                how='outer'
+                feat_result, left_index=True, right_index=True, how="outer"
             )
 
         # Now merge with the original data
         featurized_df = featurized_df.merge(
-            merged_featurizers,
-            left_index=True,
-            right_index=True,
-            how='outer'
+            merged_featurizers, left_index=True, right_index=True, how="outer"
         )
 
         log.info("✅ Successfully merged all featurizer results")
@@ -139,15 +139,18 @@ def featurize_data(data: pd.DataFrame, featurizers_config: dict[str, dict[str, A
 
     return featurized_df
 
-def process_single_file(input_file: str, featurizers_config: dict[str, dict[str, Any]], featurizers: dict[str, Callable]) -> tuple:
+
+def process_single_file(
+    input_file: str, featurizers_config: dict[str, dict[str, Any]], featurizers: dict[str, Callable]
+) -> tuple:
     """
     Process a single input file and return the featurized result.
-    
+
     Args:
         input_file (str): Path to the input parquet file
         featurizers_config (dict[str, dict[str, Any]]): Dictionary mapping featurizer names to their configurations
         featurizers (dict[str, Callable]): Dictionary of featurizer functions
-        
+
     Returns:
         tuple: (success: bool, featurized_data: pd.DataFrame or None)
     """
@@ -164,15 +167,14 @@ def process_single_file(input_file: str, featurizers_config: dict[str, dict[str,
         log.info(f"📊 Loaded {len(data)} rows with columns: {list(data.columns)}")
 
         # Check if data has a time column to set as index
-        time_column = 'start_time'
+        time_column = "start_time"
 
         # Convert to datetime if it's Unix timestamp
-        data[time_column] = pd.to_datetime(data[time_column], unit='ms', utc=True)
+        data[time_column] = pd.to_datetime(data[time_column], unit="ms", utc=True)
 
         # Set as index
         data.set_index(time_column, inplace=True)
         log.info(f"🕐 Set {time_column} as time index")
-
 
         # Sort by index
         data = data.sort_index()
@@ -195,18 +197,19 @@ def process_single_file(input_file: str, featurizers_config: dict[str, dict[str,
         log.error(f"❌ Error processing {input_file}: {e}")
         raise
 
+
 def run_featurize(config):
     """
     Run the featurization process with the specified configuration.
-    
+
     Args:
         config (dict[str, Any]): Configuration dictionary containing featurizers config, input files, and output settings
     """
     try:
         # Extract configuration values
-        featurizers_config = config['featurizers']
-        input_files = config['input_files']
-        output_directory = config['output_directory']
+        featurizers_config = config["featurizers"]
+        input_files = config["input_files"]
+        output_directory = config["output_directory"]
         # Get custom output filename if specified
 
         # Collect all unique featurizer names
@@ -229,11 +232,13 @@ def run_featurize(config):
         total_files = len(input_files)
 
         for input_file in input_files:
-            success, featurized_data = process_single_file(input_file, featurizers_config, featurizers)
+            success, featurized_data = process_single_file(
+                input_file, featurizers_config, featurizers
+            )
             if success and featurized_data is not None:
                 # Save featurized data (replace original file)
                 log.info(f"💾 Saving featurized data to: {input_file}")
-                featurized_data.to_parquet(input_file, engine='pyarrow')
+                featurized_data.to_parquet(input_file, engine="pyarrow")
 
                 log.info(f"✅ Successfully updated data with featurization: {input_file}")
                 successful_files += 1

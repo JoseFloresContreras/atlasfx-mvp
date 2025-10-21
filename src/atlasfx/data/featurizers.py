@@ -23,12 +23,12 @@ from atlasfx.utils.logging import log
 def log_pct_change(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
     """
     Calculate log percentage change for all numeric columns.
-    
+
     Args:
         dataframe: Input dataframe with time index
         config: Dictionary containing configuration parameters
             - no configurations required as log percentage change is calculated from one timestep to other. window_size=1
-        
+
     Returns:
         pd.DataFrame: DataFrame with log percentage change columns (original columns with '_log_pct_change' suffix)
     """
@@ -49,9 +49,10 @@ def log_pct_change(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFr
         # This is equivalent to log(current_price) - log(previous_price)
         # Replace 0 with NaN and take normal log difference
         values = dataframe[col].replace(0, np.nan)
-        result_df[f'{col} | log_pct_change'] = np.log(values).diff()
+        result_df[f"{col} | log_pct_change"] = np.log(values).diff()
 
     return result_df
+
 
 def _ensure_utc_index(index: pd.DatetimeIndex) -> pd.DatetimeIndex:
     """
@@ -61,6 +62,7 @@ def _ensure_utc_index(index: pd.DatetimeIndex) -> pd.DatetimeIndex:
         return index.tz_localize("UTC")
     # Normalize everything to UTC before conversions
     return index.tz_convert("UTC")
+
 
 def _session_flag_local(
     index_utc: pd.DatetimeIndex,
@@ -99,9 +101,10 @@ def _session_flag_local(
     if not include_weekends:
         # Monday=0 ... Sunday=6; keep only Mon–Fri
         weekday = idx_local.weekday
-        time_open &= (weekday < 5)
+        time_open &= weekday < 5
 
     return time_open.astype(np.int8)
+
 
 def sydney_session(dataframe: pd.DataFrame, config: dict[str, Any] = None) -> pd.DataFrame:
     """
@@ -113,6 +116,7 @@ def sydney_session(dataframe: pd.DataFrame, config: dict[str, Any] = None) -> pd
     m = _session_flag_local(dataframe.index, "Australia/Sydney", 8, 17, include_weekends=False)
     return pd.DataFrame({"sydney_session": m}, index=dataframe.index)
 
+
 def tokyo_session(dataframe: pd.DataFrame, config: dict[str, Any] = None) -> pd.DataFrame:
     """
     Create Tokyo trading session flags.
@@ -122,6 +126,7 @@ def tokyo_session(dataframe: pd.DataFrame, config: dict[str, Any] = None) -> pd.
         return pd.DataFrame()
     m = _session_flag_local(dataframe.index, "Asia/Tokyo", 9, 18, include_weekends=False)
     return pd.DataFrame({"tokyo_session": m}, index=dataframe.index)
+
 
 def london_session(dataframe: pd.DataFrame, config: dict[str, Any] = None) -> pd.DataFrame:
     """
@@ -133,6 +138,7 @@ def london_session(dataframe: pd.DataFrame, config: dict[str, Any] = None) -> pd
     m = _session_flag_local(dataframe.index, "Europe/London", 8, 17, include_weekends=False)
     return pd.DataFrame({"london_session": m}, index=dataframe.index)
 
+
 def ny_session(dataframe: pd.DataFrame, config: dict[str, Any] = None) -> pd.DataFrame:
     """
     Create New York trading session flags.
@@ -142,6 +148,7 @@ def ny_session(dataframe: pd.DataFrame, config: dict[str, Any] = None) -> pd.Dat
         return pd.DataFrame()
     m = _session_flag_local(dataframe.index, "America/New_York", 8, 17, include_weekends=False)
     return pd.DataFrame({"ny_session": m}, index=dataframe.index)
+
 
 def xauusd_session(dataframe: pd.DataFrame, config: dict[str, Any] = None) -> pd.DataFrame:
     """
@@ -161,7 +168,7 @@ def xauusd_session(dataframe: pd.DataFrame, config: dict[str, Any] = None) -> pd
 
     idx = _ensure_utc_index(dataframe.index)
 
-    wd = idx.weekday        # Mon=0 .. Sun=6
+    wd = idx.weekday  # Mon=0 .. Sun=6
     hr = idx.hour
     mn = idx.minute
     sc = idx.second
@@ -170,9 +177,9 @@ def xauusd_session(dataframe: pd.DataFrame, config: dict[str, Any] = None) -> pd
     # Closed blocks
     # 1) Weekend: full Saturday, Fri >=22:00, Sun <23:00
     weekend_closed = (
-        (wd == 5) |                                   # Saturday
-        ((wd == 4) & (sod >= 22 * 3600)) |            # Friday 22:00–24:00
-        ((wd == 6) & (sod < 23 * 3600))               # Sunday 00:00–22:59:59
+        (wd == 5)  # Saturday
+        | ((wd == 4) & (sod >= 22 * 3600))  # Friday 22:00–24:00
+        | ((wd == 6) & (sod < 23 * 3600))  # Sunday 00:00–22:59:59
     )
 
     # 2) Daily maintenance break: Mon–Thu 22:00–23:00
@@ -182,18 +189,19 @@ def xauusd_session(dataframe: pd.DataFrame, config: dict[str, Any] = None) -> pd
 
     return pd.DataFrame({"xauusd_session": open_mask.astype(np.int8)}, index=dataframe.index)
 
+
 def vwap_deviation(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
     """
     Calculate VWAP deviation for all trading pairs.
-    
+
     The deviation is calculated as: (close_price - vwap) / vwap
     This provides a normalized mean-reversion signal indicating how far the close price
     has deviated from the volume-weighted average price.
-    
+
     Args:
         dataframe: Input dataframe with time index and columns in format "{symbol} | {metric}"
         config: Dictionary containing configuration parameters (optional)
-        
+
     Returns:
         pd.DataFrame: DataFrame with VWAP deviation columns for each pair
     """
@@ -201,7 +209,7 @@ def vwap_deviation(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFr
         return pd.DataFrame()
 
     # Find all VWAP columns (format: "{symbol} | vwap")
-    vwap_columns = [col for col in dataframe.columns if '| vwap' in col]
+    vwap_columns = [col for col in dataframe.columns if "| vwap" in col]
 
     if not vwap_columns:
         log.critical("⚠️  No VWAP columns found (expected format: '{symbol} | vwap')")
@@ -211,13 +219,15 @@ def vwap_deviation(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFr
     pairs = []
     for vwap_col in vwap_columns:
         # Extract symbol from VWAP column name (e.g., "audusd | vwap" -> "audusd")
-        symbol = vwap_col.split(' | ')[0]
+        symbol = vwap_col.split(" | ")[0]
         close_col = f"{symbol} | close"
 
         if close_col in dataframe.columns:
             pairs.append((symbol, close_col, vwap_col))
         else:
-            log.critical(f"⚠️  No corresponding close column found for {vwap_col}. Expected: {close_col}")
+            log.critical(
+                f"⚠️  No corresponding close column found for {vwap_col}. Expected: {close_col}"
+            )
             return pd.DataFrame()
 
     if not pairs:
@@ -240,15 +250,16 @@ def vwap_deviation(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFr
 
     return result_df
 
+
 def ofi_rolling_mean(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
     """
     Calculate rolling mean of OFI (Order Flow Imbalance) for all columns containing 'ofi'.
-    
+
     Args:
         dataframe: Input dataframe with time index and columns in format "{symbol} | {metric}"
         config: Dictionary containing configuration parameters
             - window_size: Window size for rolling mean calculation (default: 14)
-        
+
     Returns:
         pd.DataFrame: DataFrame with OFI rolling mean columns for each pair
     """
@@ -256,10 +267,10 @@ def ofi_rolling_mean(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.Data
         return pd.DataFrame()
 
     # Extract configuration
-    window_size = config.get('window_size')
+    window_size = config.get("window_size")
 
     # Find all OFI columns (format: "{symbol} | ofi")
-    ofi_columns = [col for col in dataframe.columns if '| ofi' in col]
+    ofi_columns = [col for col in dataframe.columns if "| ofi" in col]
 
     if not ofi_columns:
         log.critical("⚠️  No OFI columns found (expected format: '{symbol} | ofi')")
@@ -270,7 +281,7 @@ def ofi_rolling_mean(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.Data
     # Calculate rolling mean for each OFI column
     for ofi_col in ofi_columns:
         # Extract symbol from OFI column name (e.g., "audusd | ofi" -> "audusd")
-        symbol = ofi_col.split(' | ')[0]
+        symbol = ofi_col.split(" | ")[0]
 
         # Calculate rolling mean
         rolling_mean = dataframe[ofi_col].rolling(window=window_size).mean()
@@ -281,21 +292,22 @@ def ofi_rolling_mean(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.Data
 
     return result_df
 
+
 def atr(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
     """
     Calculate Average True Range (ATR) for all trading pairs.
-    
+
     ATR measures market volatility by decomposing the entire range of an asset price for that period.
     True Range is the greatest of the following:
     1. Current High - Current Low
     2. |Current High - Previous Close|
     3. |Current Low - Previous Close|
-    
+
     Args:
         dataframe: Input dataframe with time index and columns in format "{symbol} | {metric}"
         config: Dictionary containing configuration parameters
             - window_size: Window size for ATR calculation (default: 14)
-        
+
     Returns:
         pd.DataFrame: DataFrame with ATR columns for each pair
     """
@@ -303,12 +315,12 @@ def atr(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
         return pd.DataFrame()
 
     # Extract configuration
-    window_size = config.get('window_size', 14)  # Default to 14 if not specified
+    window_size = config.get("window_size", 14)  # Default to 14 if not specified
 
     # Find all high, low, and close columns for each symbol
-    high_columns = [col for col in dataframe.columns if '| high' in col]
-    low_columns = [col for col in dataframe.columns if '| low' in col]
-    close_columns = [col for col in dataframe.columns if '| close' in col]
+    high_columns = [col for col in dataframe.columns if "| high" in col]
+    low_columns = [col for col in dataframe.columns if "| low" in col]
+    close_columns = [col for col in dataframe.columns if "| close" in col]
 
     if not high_columns or not low_columns or not close_columns:
         log.critical("⚠️  Missing required OHLC columns for ATR calculation")
@@ -317,16 +329,12 @@ def atr(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
     # Create a mapping of symbols to their OHLC columns
     symbol_ohlc = {}
     for high_col in high_columns:
-        symbol = high_col.split(' | ')[0]
+        symbol = high_col.split(" | ")[0]
         low_col = f"{symbol} | low"
         close_col = f"{symbol} | close"
 
         if low_col in low_columns and close_col in close_columns:
-            symbol_ohlc[symbol] = {
-                'high': high_col,
-                'low': low_col,
-                'close': close_col
-            }
+            symbol_ohlc[symbol] = {"high": high_col, "low": low_col, "close": close_col}
 
     if not symbol_ohlc:
         log.critical("⚠️  No valid OHLC column combinations found for ATR calculation")
@@ -337,9 +345,9 @@ def atr(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
     # Calculate ATR for each symbol
     for symbol, ohlc_cols in symbol_ohlc.items():
         try:
-            high = dataframe[ohlc_cols['high']]
-            low = dataframe[ohlc_cols['low']]
-            close = dataframe[ohlc_cols['close']]
+            high = dataframe[ohlc_cols["high"]]
+            low = dataframe[ohlc_cols["low"]]
+            close = dataframe[ohlc_cols["close"]]
 
             # Calculate True Range
             close_prev = close.shift(1)
@@ -361,18 +369,19 @@ def atr(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
 
     return result_df
 
+
 def atr_log_pct_change(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
     """
     Calculate log percentage change of Average True Range (ATR) for all trading pairs.
-    
+
     This function reuses the atr() function to calculate ATR values and then returns
     the log percentage change for symmetric distribution.
-    
+
     Args:
         dataframe: Input dataframe with time index and columns in format "{symbol} | {metric}"
         config: Dictionary containing configuration parameters
             - window_size: Window size for ATR calculation (default: 14)
-        
+
     Returns:
         pd.DataFrame: DataFrame with ATR log percentage change columns for each pair
     """
@@ -380,7 +389,7 @@ def atr_log_pct_change(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.Da
         return pd.DataFrame()
 
     # Extract configuration
-    window_size = config.get('window_size', 14)  # Default to 14 if not specified
+    window_size = config.get("window_size", 14)  # Default to 14 if not specified
 
     # Reuse the atr function to get ATR values
     atr_df = atr(dataframe, config)
@@ -394,7 +403,7 @@ def atr_log_pct_change(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.Da
     for col in atr_df.columns:
         try:
             # Extract symbol from ATR column name (e.g., "audusd | atr_14" -> "audusd")
-            symbol = col.split(' | ')[0]
+            symbol = col.split(" | ")[0]
 
             # Get ATR values
             atr_values = atr_df[col]
@@ -415,21 +424,22 @@ def atr_log_pct_change(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.Da
 
     return result_df
 
+
 def volatility_ratio(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
     """
     Calculate volatility ratio (short-term ATR / long-term ATR) for all trading pairs.
-    
+
     This ratio helps detect regime changes in volatility. A ratio > 1 indicates
     increasing volatility (short-term > long-term), while < 1 indicates decreasing volatility.
-    
+
     This function reuses the atr() function to calculate both short-term and long-term ATR values.
-    
+
     Args:
         dataframe: Input dataframe with time index and OHLC columns in format "{symbol} | {metric}"
         config: Dictionary containing configuration parameters
             - short_window: Window size for short-term ATR (default: 14)
             - long_window: Window size for long-term ATR (default: 60)
-        
+
     Returns:
         pd.DataFrame: DataFrame with volatility ratio columns for each pair
     """
@@ -437,15 +447,15 @@ def volatility_ratio(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.Data
         return pd.DataFrame()
 
     # Extract configuration
-    short_window = config.get('short_window', 14)  # Default to 14 if not specified
-    long_window = config.get('long_window', 60)    # Default to 60 if not specified
+    short_window = config.get("short_window", 14)  # Default to 14 if not specified
+    long_window = config.get("long_window", 60)  # Default to 60 if not specified
 
     # Get short-term ATR values
-    short_config = {'window_size': short_window}
+    short_config = {"window_size": short_window}
     short_atr_df = atr(dataframe, short_config)
 
     # Get long-term ATR values
-    long_config = {'window_size': long_window}
+    long_config = {"window_size": long_window}
     long_atr_df = atr(dataframe, long_config)
 
     if short_atr_df.empty or long_atr_df.empty:
@@ -457,7 +467,7 @@ def volatility_ratio(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.Data
     for short_col in short_atr_df.columns:
         try:
             # Extract symbol from short ATR column name (e.g., "audusd | atr_14" -> "audusd")
-            symbol = short_col.split(' | ')[0]
+            symbol = short_col.split(" | ")[0]
 
             # Find corresponding long ATR column
             long_col = f"{symbol} | atr_{long_window}"
@@ -481,6 +491,7 @@ def volatility_ratio(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.Data
             return pd.DataFrame()
 
     return result_df
+
 
 def bipower_variation_features(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
     """
@@ -508,7 +519,7 @@ def bipower_variation_features(dataframe: pd.DataFrame, config: dict[str, Any]) 
             return pd.DataFrame()
 
         # Extract configuration
-        window_size = config.get('window_size', 30)  # Default to 30 if not specified
+        window_size = config.get("window_size", 30)  # Default to 30 if not specified
 
         # enforce valid window for the |r_t||r_{t-1}| mean
         window_size = max(int(window_size), 2)
@@ -533,7 +544,7 @@ def bipower_variation_features(dataframe: pd.DataFrame, config: dict[str, Any]) 
             bv = (np.pi / 2.0) * prod.rolling(window=window_size - 1).mean()
 
             # Realized variance: per-step average over window_size
-            rv = (r ** 2).rolling(window=window_size).mean()
+            rv = (r**2).rolling(window=window_size).mean()
 
             jump = (rv - bv).clip(lower=0)
 
@@ -545,18 +556,19 @@ def bipower_variation_features(dataframe: pd.DataFrame, config: dict[str, Any]) 
     except Exception:
         return pd.DataFrame()
 
+
 def rsi(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
     """
     Calculate RSI (Relative Strength Index) for all trading pairs.
-    
+
     RSI is a momentum oscillator that measures the speed and magnitude of recent price changes
     to evaluate overbought or oversold conditions. RSI ranges from 0 to 100.
-    
+
     Args:
         dataframe: Input dataframe with time index and columns in format "{symbol} | close"
         config: Dictionary containing configuration parameters
             - window_size: Window size for RSI calculation (default: 14)
-        
+
     Returns:
         pd.DataFrame: DataFrame with RSI columns for each pair
     """
@@ -564,10 +576,10 @@ def rsi(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
         return pd.DataFrame()
 
     # Extract configuration
-    window_size = config.get('window_size', 14)  # Default to 14 if not specified
+    window_size = config.get("window_size", 14)  # Default to 14 if not specified
 
     # Find all close columns (format: "{symbol} | close")
-    close_columns = [col for col in dataframe.columns if '| close' in col]
+    close_columns = [col for col in dataframe.columns if "| close" in col]
 
     if not close_columns:
         log.warning("⚠️  No columns containing '| close' found for RSI calculation")
@@ -579,7 +591,7 @@ def rsi(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
     for close_col in close_columns:
         try:
             # Extract symbol from close column name (e.g., "audusd | close" -> "audusd")
-            symbol = close_col.split(' | ')[0]
+            symbol = close_col.split(" | ")[0]
             close = dataframe[close_col]
 
             # Calculate RSI using pandas_ta
@@ -595,19 +607,20 @@ def rsi(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
 
     return result_df
 
+
 def bollinger_width(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
     """
     Calculate Bollinger Band Width for all trading pairs.
-    
+
     Bollinger Band Width = (Upper Band - Lower Band) / Middle Band (SMA)
     This indicator helps detect volatility compression and expansion phases.
     Lower values indicate volatility compression, higher values indicate expansion.
-    
+
     Args:
         dataframe: Input dataframe with time index and columns in format "{symbol} | close"
         config: Dictionary containing configuration parameters
             - window_size: Window size for Bollinger Bands calculation (default: 20)
-        
+
     Returns:
         pd.DataFrame: DataFrame with Bollinger Band Width columns for each pair
     """
@@ -615,10 +628,10 @@ def bollinger_width(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataF
         return pd.DataFrame()
 
     # Extract configuration
-    window_size = config.get('window_size', 20)  # Default to 20 if not specified
+    window_size = config.get("window_size", 20)  # Default to 20 if not specified
 
     # Find all close columns (format: "{symbol} | close")
-    close_columns = [col for col in dataframe.columns if '| close' in col]
+    close_columns = [col for col in dataframe.columns if "| close" in col]
 
     if not close_columns:
         log.warning("⚠️  No columns containing '| close' found for Bollinger Band Width calculation")
@@ -630,16 +643,16 @@ def bollinger_width(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataF
     for close_col in close_columns:
         try:
             # Extract symbol from close column name (e.g., "audusd | close" -> "audusd")
-            symbol = close_col.split(' | ')[0]
+            symbol = close_col.split(" | ")[0]
             close = dataframe[close_col]
 
             # Calculate Bollinger Bands using pandas_ta
             bb = ta.bbands(close, length=window_size)
 
             # Extract the bands
-            upper_band = bb['BBU_20_2.0']  # Upper band
-            lower_band = bb['BBL_20_2.0']  # Lower band
-            middle_band = bb['BBM_20_2.0']  # Middle band (SMA)
+            upper_band = bb["BBU_20_2.0"]  # Upper band
+            lower_band = bb["BBL_20_2.0"]  # Lower band
+            middle_band = bb["BBM_20_2.0"]  # Middle band (SMA)
 
             # Calculate Bollinger Band Width: (Upper - Lower) / Middle
             bb_width = (upper_band - lower_band) / middle_band
@@ -654,18 +667,19 @@ def bollinger_width(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataF
 
     return result_df
 
+
 def return_skewness(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
     """
     Calculate return skewness for all trading pairs.
-    
+
     Return skewness measures the asymmetry of log returns distribution over a rolling window.
     Positive skewness indicates more upside moves, negative skewness indicates more downside moves.
-    
+
     Args:
         dataframe: Input dataframe with time index and columns in format "{symbol} | close"
         config: Dictionary containing configuration parameters
             - window_size: Window size for skewness calculation (default: 60)
-        
+
     Returns:
         pd.DataFrame: DataFrame with return skewness columns for each pair
     """
@@ -673,10 +687,10 @@ def return_skewness(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataF
         return pd.DataFrame()
 
     # Extract configuration
-    window_size = config.get('window_size', 60)  # Default to 60 if not specified
+    window_size = config.get("window_size", 60)  # Default to 60 if not specified
 
     # Find all close columns (format: "{symbol} | close")
-    close_columns = [col for col in dataframe.columns if '| close' in col]
+    close_columns = [col for col in dataframe.columns if "| close" in col]
 
     if not close_columns:
         log.warning("⚠️  No columns containing '| close' found for return skewness calculation")
@@ -688,7 +702,7 @@ def return_skewness(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataF
     for close_col in close_columns:
         try:
             # Extract symbol from close column name (e.g., "audusd | close" -> "audusd")
-            symbol = close_col.split(' | ')[0]
+            symbol = close_col.split(" | ")[0]
             close = dataframe[close_col]
 
             # Calculate log returns
@@ -707,18 +721,19 @@ def return_skewness(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataF
 
     return result_df
 
+
 def return_kurtosis(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
     """
     Calculate return kurtosis for all trading pairs.
-    
+
     Return kurtosis measures the "tailedness" of log returns distribution over a rolling window.
     Higher kurtosis indicates more extreme moves and "fat tails", lower kurtosis indicates more normal distribution.
-    
+
     Args:
         dataframe: Input dataframe with time index and columns in format "{symbol} | close"
         config: Dictionary containing configuration parameters
             - window_size: Window size for kurtosis calculation (default: 60)
-        
+
     Returns:
         pd.DataFrame: DataFrame with return kurtosis columns for each pair
     """
@@ -726,10 +741,10 @@ def return_kurtosis(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataF
         return pd.DataFrame()
 
     # Extract configuration
-    window_size = config.get('window_size', 60)  # Default to 60 if not specified
+    window_size = config.get("window_size", 60)  # Default to 60 if not specified
 
     # Find all close columns (format: "{symbol} | close")
-    close_columns = [col for col in dataframe.columns if '| close' in col]
+    close_columns = [col for col in dataframe.columns if "| close" in col]
 
     if not close_columns:
         log.warning("⚠️  No columns containing '| close' found for return kurtosis calculation")
@@ -741,7 +756,7 @@ def return_kurtosis(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataF
     for close_col in close_columns:
         try:
             # Extract symbol from close column name (e.g., "audusd | close" -> "audusd")
-            symbol = close_col.split(' | ')[0]
+            symbol = close_col.split(" | ")[0]
             close = dataframe[close_col]
 
             # Calculate log returns
@@ -760,19 +775,20 @@ def return_kurtosis(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataF
 
     return result_df
 
+
 def csi(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
     """
     Calculate Currency Strength Index (CSI) for all currencies.
-    
+
     CSI measures the relative strength of each currency against all other currencies.
     It normalizes each currency pair's close price and aggregates the strength based on
     whether the currency is the base or quote currency in each pair.
-    
+
     Args:
         dataframe: Input dataframe with time index and columns in format "{symbol} | close"
         config: Dictionary containing configuration parameters
             - window_size: Window size for rolling normalization (default: 20160)
-        
+
     Returns:
         pd.DataFrame: DataFrame with CSI columns for each currency
     """
@@ -780,10 +796,10 @@ def csi(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
         return pd.DataFrame()
 
     # Extract configuration
-    window_size = config.get('window_size', 14)  # Default to 20160 if not specified
+    window_size = config.get("window_size", 14)  # Default to 20160 if not specified
 
     # Find all close columns for pairs only (format: "{symbol}-pair | close")
-    close_columns = [col for col in dataframe.columns if '| close' in col and '-pair' in col]
+    close_columns = [col for col in dataframe.columns if "| close" in col and "-pair" in col]
 
     if not close_columns:
         log.warning("⚠️  No pair columns containing '| close' found for CSI calculation")
@@ -795,7 +811,7 @@ def csi(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
 
     for close_col in close_columns:
         # Extract symbol from close column name (e.g., "audusd-pair | close" -> "audusd")
-        symbol_with_suffix = close_col.split(' | ')[0].lower()
+        symbol_with_suffix = close_col.split(" | ")[0].lower()
         symbol = symbol_with_suffix[:-5]
 
         # Only process 6-character currency pairs (3+3 format)
@@ -845,9 +861,9 @@ def csi(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
         # Scale to 0-100
         if count > 0:
             csi_values = csi_values / count
-            result_df[f'csi_{currency.lower()}'] = csi_values.astype(np.float32)
+            result_df[f"csi_{currency.lower()}"] = csi_values.astype(np.float32)
         else:
-            result_df[f'csi_{currency.lower()}'] = np.nan
+            result_df[f"csi_{currency.lower()}"] = np.nan
 
     return result_df
 
@@ -855,14 +871,14 @@ def csi(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
 def minute_of_day(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
     """
     Calculate minute of day features with cyclical encoding.
-    
+
     Creates sine and cosine components for the minute of day to capture cyclical patterns.
     This is useful for identifying intraday trading patterns and market session effects.
-    
+
     Args:
         dataframe: Input dataframe with time index
         config: Dictionary containing configuration parameters (optional)
-        
+
     Returns:
         pd.DataFrame: DataFrame with minute_of_day_sin and minute_of_day_cos columns
     """
@@ -885,8 +901,8 @@ def minute_of_day(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFra
     minute_of_day_cos = np.cos(2 * np.pi * minute_of_day_raw / 1440)
 
     # Add to result dataframe
-    result_df['minute_of_day_sin'] = minute_of_day_sin.astype(np.float32)
-    result_df['minute_of_day_cos'] = minute_of_day_cos.astype(np.float32)
+    result_df["minute_of_day_sin"] = minute_of_day_sin.astype(np.float32)
+    result_df["minute_of_day_cos"] = minute_of_day_cos.astype(np.float32)
 
     return result_df
 
@@ -894,14 +910,14 @@ def minute_of_day(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFra
 def day_of_week(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
     """
     Calculate day of week features with cyclical encoding.
-    
+
     Creates sine and cosine components for the day of week to capture cyclical patterns.
     This is useful for identifying weekly trading patterns and weekend effects.
-    
+
     Args:
         dataframe: Input dataframe with time index
         config: Dictionary containing configuration parameters (optional)
-        
+
     Returns:
         pd.DataFrame: DataFrame with day_of_week_sin and day_of_week_cos columns
     """
@@ -924,8 +940,8 @@ def day_of_week(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame
     day_of_week_cos = np.cos(2 * np.pi * day_of_week_raw / 7)
 
     # Add to result dataframe
-    result_df['day_of_week_sin'] = day_of_week_sin.astype(np.float32)
-    result_df['day_of_week_cos'] = day_of_week_cos.astype(np.float32)
+    result_df["day_of_week_sin"] = day_of_week_sin.astype(np.float32)
+    result_df["day_of_week_cos"] = day_of_week_cos.astype(np.float32)
 
     return result_df
 
@@ -933,14 +949,14 @@ def day_of_week(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame
 def week_of_month(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
     """
     Calculate week of month features with cyclical encoding.
-    
+
     Creates sine and cosine components for the week of month to capture cyclical patterns.
     This is useful for identifying monthly patterns and weekly cycles within months.
-    
+
     Args:
         dataframe: Input dataframe with time index
         config: Dictionary containing configuration parameters (optional)
-        
+
     Returns:
         pd.DataFrame: DataFrame with week_of_month_sin and week_of_month_cos columns
     """
@@ -964,8 +980,8 @@ def week_of_month(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFra
     week_of_month_cos = np.cos(2 * np.pi * week_of_month_raw / 5)
 
     # Add to result dataframe
-    result_df['week_of_month_sin'] = week_of_month_sin.astype(np.float32)
-    result_df['week_of_month_cos'] = week_of_month_cos.astype(np.float32)
+    result_df["week_of_month_sin"] = week_of_month_sin.astype(np.float32)
+    result_df["week_of_month_cos"] = week_of_month_cos.astype(np.float32)
 
     return result_df
 
@@ -973,14 +989,14 @@ def week_of_month(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFra
 def month_of_year(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
     """
     Calculate month of year features with cyclical encoding.
-    
+
     Creates sine and cosine components for the month of year to capture cyclical patterns.
     This is useful for identifying seasonal patterns and monthly trading cycles.
-    
+
     Args:
         dataframe: Input dataframe with time index
         config: Dictionary containing configuration parameters (optional)
-        
+
     Returns:
         pd.DataFrame: DataFrame with month_of_year_sin and month_of_year_cos columns
     """
@@ -1003,8 +1019,8 @@ def month_of_year(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFra
     month_of_year_cos = np.cos(2 * np.pi * month_of_year_raw / 12)
 
     # Add to result dataframe
-    result_df['month_of_year_sin'] = month_of_year_sin.astype(np.float32)
-    result_df['month_of_year_cos'] = month_of_year_cos.astype(np.float32)
+    result_df["month_of_year_sin"] = month_of_year_sin.astype(np.float32)
+    result_df["month_of_year_cos"] = month_of_year_cos.astype(np.float32)
 
     return result_df
 
@@ -1012,17 +1028,17 @@ def month_of_year(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFra
 def pair_correlations(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
     """
     Calculate rolling correlations between specified pairs.
-    
+
     Creates correlation features for pairs of currency pairs over a specified window.
     This is useful for identifying relationships and co-movements between different currency pairs.
-    
+
     Args:
         dataframe: Input dataframe with time index and columns in format "{symbol}-pair | close"
         config: Dictionary containing configuration parameters
             - window_size: Window size for rolling correlation calculation (default: 30)
             - pairs: List of pair combinations to calculate correlations for
                     Format: [["pair1", "pair2"], ["pair1", "pair3"], ...]
-        
+
     Returns:
         pd.DataFrame: DataFrame with correlation columns for each pair combination
     """
@@ -1035,15 +1051,15 @@ def pair_correlations(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.Dat
         return pd.DataFrame()
 
     # Extract configuration
-    window_size = config.get('window_size', 30)
-    pairs_config = config.get('pairs', [])
+    window_size = config.get("window_size", 30)
+    pairs_config = config.get("pairs", [])
 
     if not pairs_config:
         log.warning("⚠️  No pairs specified for correlation calculation")
         return pd.DataFrame()
 
     # Find all close columns for pairs
-    close_columns = [col for col in dataframe.columns if '| close' in col and '-pair' in col]
+    close_columns = [col for col in dataframe.columns if "| close" in col and "-pair" in col]
 
     if not close_columns:
         log.warning("⚠️  No pair close columns found for correlation calculation")
@@ -1053,8 +1069,8 @@ def pair_correlations(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.Dat
     available_pairs = {}
     for close_col in close_columns:
         # Extract symbol from close column name (e.g., "audusd-pair | close" -> "audusd")
-        symbol_with_suffix = close_col.split(' | ')[0].lower()
-        if symbol_with_suffix.endswith('-pair'):
+        symbol_with_suffix = close_col.split(" | ")[0].lower()
+        if symbol_with_suffix.endswith("-pair"):
             symbol = symbol_with_suffix[:-5]  # Remove '-pair' suffix
             available_pairs[symbol] = close_col
 
@@ -1095,5 +1111,3 @@ def pair_correlations(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.Dat
             continue
 
     return result_df
-
-

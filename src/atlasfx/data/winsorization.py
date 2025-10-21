@@ -18,10 +18,10 @@ from atlasfx.utils.logging import log
 def load_data(input_file: str) -> pd.DataFrame:
     """
     Load data from parquet file.
-    
+
     Args:
         input_file (str): Path to input parquet file
-        
+
     Returns:
         pd.DataFrame: Loaded data
     """
@@ -40,18 +40,20 @@ def load_data(input_file: str) -> pd.DataFrame:
         raise Exception(error_msg)
 
 
-def calculate_winsorization_bounds(df: pd.DataFrame, aggregations: list[str], high_percentile: float, low_percentile: float) -> tuple[dict[str, tuple[float, float]], dict[str, tuple[float, float]]]:
+def calculate_winsorization_bounds(
+    df: pd.DataFrame, aggregations: list[str], high_percentile: float, low_percentile: float
+) -> tuple[dict[str, tuple[float, float]], dict[str, tuple[float, float]]]:
     """
     Calculate winsorization bounds for columns matching aggregation keywords.
-    
+
     Args:
         df (pd.DataFrame): Input dataframe
         aggregations (list[str]): List of aggregation keywords to match in column names
         high_percentile (float): High percentile for winsorization (e.g., 0.95)
         low_percentile (float): Low percentile for winsorization (e.g., 0.05)
-        
+
     Returns:
-        tuple[dict[str, tuple[float, float]], dict[str, tuple[float, float]]]: 
+        tuple[dict[str, tuple[float, float]], dict[str, tuple[float, float]]]:
             - Dictionary mapping column names to (lower_bound, upper_bound)
             - Dictionary mapping column names to (low_percentile, high_percentile)
     """
@@ -63,7 +65,9 @@ def calculate_winsorization_bounds(df: pd.DataFrame, aggregations: list[str], hi
         matching_columns = [col for col in df.columns if aggregation in col]
 
         if matching_columns:
-            log.info(f"🔍 Found {len(matching_columns)} columns matching '{aggregation}': {matching_columns}")
+            log.info(
+                f"🔍 Found {len(matching_columns)} columns matching '{aggregation}': {matching_columns}"
+            )
 
             for column in matching_columns:
                 # Calculate percentiles
@@ -71,17 +75,24 @@ def calculate_winsorization_bounds(df: pd.DataFrame, aggregations: list[str], hi
                 upper_bound = df[column].quantile(high_percentile)
                 bounds[column] = (lower_bound, upper_bound)
                 percentiles[column] = (low_percentile, high_percentile)
-                log.info(f"📊 {column}: bounds [{lower_bound:.4f}, {upper_bound:.4f}] (percentiles [{low_percentile:.1%}, {high_percentile:.1%}])")
+                log.info(
+                    f"📊 {column}: bounds [{lower_bound:.4f}, {upper_bound:.4f}] (percentiles [{low_percentile:.1%}, {high_percentile:.1%}])"
+                )
         else:
             log.warning(f"⚠️  No columns found matching '{aggregation}', skipping...")
 
     return bounds, percentiles
 
 
-def save_winsorization_params(bounds: dict[str, tuple[float, float]], percentiles: dict[str, tuple[float, float]], output_directory: str, time_window: str):
+def save_winsorization_params(
+    bounds: dict[str, tuple[float, float]],
+    percentiles: dict[str, tuple[float, float]],
+    output_directory: str,
+    time_window: str,
+):
     """
     Save winsorization parameters to file.
-    
+
     Args:
         bounds (dict[str, tuple[float, float]]): Dictionary mapping column names to (lower_bound, upper_bound)
         percentiles (dict[str, tuple[float, float]]): Dictionary mapping column names to (low_percentile, high_percentile)
@@ -91,13 +102,10 @@ def save_winsorization_params(bounds: dict[str, tuple[float, float]], percentile
     params_file = os.path.join(output_directory, f"{time_window}_winsorization_params.pkl")
 
     # Combine bounds and percentiles into a single dictionary
-    winsorization_params = {
-        'bounds': bounds,
-        'percentiles': percentiles
-    }
+    winsorization_params = {"bounds": bounds, "percentiles": percentiles}
 
     try:
-        with open(params_file, 'wb') as f:
+        with open(params_file, "wb") as f:
             pickle.dump(winsorization_params, f)
         log.info(f"✅ Winsorization parameters saved to {params_file}")
     except Exception as e:
@@ -106,16 +114,21 @@ def save_winsorization_params(bounds: dict[str, tuple[float, float]], percentile
         raise Exception(error_msg)
 
 
-def apply_winsorization(df: pd.DataFrame, bounds: dict[str, tuple[float, float]], percentiles: dict[str, tuple[float, float]], suffix: str = "") -> pd.DataFrame:
+def apply_winsorization(
+    df: pd.DataFrame,
+    bounds: dict[str, tuple[float, float]],
+    percentiles: dict[str, tuple[float, float]],
+    suffix: str = "",
+) -> pd.DataFrame:
     """
     Apply winsorization to dataframe using pre-calculated bounds.
-    
+
     Args:
         df (pd.DataFrame): Input dataframe
         bounds (dict[str, tuple[float, float]]): Dictionary mapping column names to (lower_bound, upper_bound)
         percentiles (dict[str, tuple[float, float]]): Dictionary mapping column names to (low_percentile, high_percentile)
         suffix (str): Suffix to add to column names after winsorization
-        
+
     Returns:
         pd.DataFrame: Dataframe with winsorized columns
     """
@@ -138,16 +151,21 @@ def apply_winsorization(df: pd.DataFrame, bounds: dict[str, tuple[float, float]]
     return df_winsorized
 
 
-def process_winsorization(input_files: list[str], output_directory: str, winsorization_configs: list[dict[str, Any]], time_window: str = None) -> bool:
+def process_winsorization(
+    input_files: list[str],
+    output_directory: str,
+    winsorization_configs: list[dict[str, Any]],
+    time_window: str = None,
+) -> bool:
     """
     Process winsorization for train/val/test files.
-    
+
     Args:
         input_files (list[str]): List of input file paths (train, val, test)
         output_directory (str): Output directory
         winsorization_configs (list[dict[str, Any]]): List of winsorization configurations
         time_window (str): Time window used for aggregation
-        
+
     Returns:
         bool: True if successful, False otherwise
     """
@@ -161,11 +179,11 @@ def process_winsorization(input_files: list[str], output_directory: str, winsori
 
         for file_path in input_files:
             filename = os.path.basename(file_path)
-            if '_train' in filename:
+            if "_train" in filename:
                 train_file = file_path
-            elif '_val' in filename:
+            elif "_val" in filename:
                 val_file = file_path
-            elif '_test' in filename:
+            elif "_test" in filename:
                 test_file = file_path
 
         if not all([train_file, val_file, test_file]):
@@ -181,12 +199,14 @@ def process_winsorization(input_files: list[str], output_directory: str, winsori
         all_bounds = {}
         all_percentiles = {}
         for config in winsorization_configs:
-            aggregations = config['aggregations']
-            high_percentile = config['high']
-            low_percentile = config['low']
+            aggregations = config["aggregations"]
+            high_percentile = config["high"]
+            low_percentile = config["low"]
 
             log.info(f"🔧 Calculating bounds for aggregations: {aggregations}")
-            bounds, percentiles = calculate_winsorization_bounds(train_df, aggregations, high_percentile, low_percentile)
+            bounds, percentiles = calculate_winsorization_bounds(
+                train_df, aggregations, high_percentile, low_percentile
+            )
             all_bounds.update(bounds)
             all_percentiles.update(percentiles)
 
@@ -195,11 +215,7 @@ def process_winsorization(input_files: list[str], output_directory: str, winsori
         save_winsorization_params(all_bounds, all_percentiles, output_directory, time_window)
 
         # Process each dataset
-        datasets = [
-            ('train', train_file),
-            ('val', val_file),
-            ('test', test_file)
-        ]
+        datasets = [("train", train_file), ("val", val_file), ("test", test_file)]
 
         for dataset_name, file_path in datasets:
             log.info(f"\n📊 Processing {dataset_name} dataset...")
@@ -230,7 +246,7 @@ def process_winsorization(input_files: list[str], output_directory: str, winsori
 def run_winsorize(config: dict[str, Any]):
     """
     Run the winsorization pipeline.
-    
+
     Args:
         config (dict[str, Any]): Configuration dictionary
     """
@@ -238,10 +254,10 @@ def run_winsorize(config: dict[str, Any]):
         log.info("🔧 Starting winsorization pipeline...")
 
         # Extract configuration
-        input_files = config['input_files']
-        output_directory = config['output_directory']
-        winsorization_configs = config['winsorization_configs']
-        time_window = config.get('time_window', None)
+        input_files = config["input_files"]
+        output_directory = config["output_directory"]
+        winsorization_configs = config["winsorization_configs"]
+        time_window = config.get("time_window", None)
 
         log.info(f"📁 Input files: {len(input_files)} files to process")
         log.info(f"📁 Output directory: {output_directory}")
@@ -252,7 +268,9 @@ def run_winsorize(config: dict[str, Any]):
         os.makedirs(output_directory, exist_ok=True)
 
         # Process winsorization
-        success = process_winsorization(input_files, output_directory, winsorization_configs, time_window)
+        success = process_winsorization(
+            input_files, output_directory, winsorization_configs, time_window
+        )
 
         if success:
             log.info("✅ Winsorization pipeline completed successfully!")
@@ -268,25 +286,17 @@ def run_winsorize(config: dict[str, Any]):
 if __name__ == "__main__":
     # Example usage
     config = {
-        'input_files': [
-            'data/1H_forex_data_train.parquet',
-            'data/1H_forex_data_val.parquet',
-            'data/1H_forex_data_test.parquet'
+        "input_files": [
+            "data/1H_forex_data_train.parquet",
+            "data/1H_forex_data_val.parquet",
+            "data/1H_forex_data_test.parquet",
         ],
-        'output_directory': 'data',
-        'time_window': '1H',
-        'winsorization_configs': [
-            {
-                'aggregations': ['tick_count', 'volatility'],
-                'high': 0.95,
-                'low': 0.05
-            },
-            {
-                'aggregations': ['volume'],
-                'high': 0.99,
-                'low': 0.01
-            }
-        ]
+        "output_directory": "data",
+        "time_window": "1H",
+        "winsorization_configs": [
+            {"aggregations": ["tick_count", "volatility"], "high": 0.95, "low": 0.05},
+            {"aggregations": ["volume"], "high": 0.99, "low": 0.01},
+        ],
     }
 
     run_winsorize(config)
