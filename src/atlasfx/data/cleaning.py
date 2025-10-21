@@ -28,14 +28,14 @@ def load_config(config_file="clean.yaml"):
         with open(config_file) as file:
             config = yaml.safe_load(file)
         return config
-    except FileNotFoundError:
+    except FileNotFoundError as e:
         error_msg = f"Configuration file '{config_file}' not found"
         log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
-        raise FileNotFoundError(error_msg)
+        raise FileNotFoundError(error_msg) from e
     except yaml.YAMLError as e:
         error_msg = f"Error parsing YAML file: {e}"
         log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
-        raise yaml.YAMLError(error_msg)
+        raise yaml.YAMLError(error_msg) from e
 
 
 def load_data(input_file: str) -> pd.DataFrame:
@@ -53,14 +53,14 @@ def load_data(input_file: str) -> pd.DataFrame:
         data = pd.read_parquet(input_file)
         log.info(f"✅ Loaded {len(data)} rows with {len(data.columns)} columns")
         return data
-    except FileNotFoundError:
+    except FileNotFoundError as e:
         error_msg = f"Input file not found: {input_file}"
         log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
-        raise FileNotFoundError(error_msg)
+        raise FileNotFoundError(error_msg) from e
     except Exception as e:
         error_msg = f"Error loading data: {e}"
         log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
-        raise Exception(error_msg)
+        raise Exception(error_msg) from e
 
 
 def convert_timestamp_to_datetime(data: pd.DataFrame, time_column: str) -> pd.DataFrame:

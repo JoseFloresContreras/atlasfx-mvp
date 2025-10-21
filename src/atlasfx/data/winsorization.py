@@ -30,14 +30,14 @@ def load_data(input_file: str) -> pd.DataFrame:
         df = pd.read_parquet(input_file)
         log.info(f"✅ Loaded {len(df):,} rows and {len(df.columns)} columns")
         return df
-    except FileNotFoundError:
+    except FileNotFoundError as e:
         error_msg = f"Input file not found: {input_file}"
         log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
-        raise FileNotFoundError(error_msg)
+        raise FileNotFoundError(error_msg) from e
     except Exception as e:
         error_msg = f"Error loading data from {input_file}: {e}"
         log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
-        raise Exception(error_msg)
+        raise Exception(error_msg) from e
 
 
 def calculate_winsorization_bounds(
@@ -111,7 +111,7 @@ def save_winsorization_params(
     except Exception as e:
         error_msg = f"Error saving winsorization parameters: {e}"
         log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
-        raise Exception(error_msg)
+        raise Exception(error_msg) from e
 
 
 def apply_winsorization(

@@ -37,14 +37,14 @@ def load_pipeline_config(config_file="configs/data_pipeline.yaml"):
         with open(config_file, "r") as file:
             config = yaml.safe_load(file)
         return config
-    except FileNotFoundError:
+    except FileNotFoundError as e:
         error_msg = f"Pipeline configuration file '{config_file}' not found"
         log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
-        raise FileNotFoundError(error_msg)
+        raise FileNotFoundError(error_msg) from e
     except yaml.YAMLError as e:
         error_msg = f"Error parsing pipeline YAML file: {e}"
         log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
-        raise yaml.YAMLError(error_msg)
+        raise yaml.YAMLError(error_msg) from e
 
 
 def get_expected_input_files(step_name: str, pipeline_config: Dict[str, Any] = None):

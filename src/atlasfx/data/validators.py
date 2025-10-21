@@ -52,10 +52,10 @@ class DataValidator:
         try:
             with open(schema_path) as f:
                 return yaml.safe_load(f)
-        except FileNotFoundError:
+        except FileNotFoundError as e:
             error_msg = f"Schema file not found: {schema_path}"
             log.error(error_msg)
-            raise FileNotFoundError(error_msg)
+            raise FileNotFoundError(error_msg) from e
 
     def validate_tick_data(self, df: pd.DataFrame) -> tuple[bool, list[str]]:
         """
