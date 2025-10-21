@@ -68,24 +68,34 @@ This repository has been cleaned up and restructured after a comprehensive audit
 
 ## 📁 Repository Structure
 
-**Current Structure (Post-Cleanup):**
+**Current Structure (Post-Cleanup & Refactoring):**
 ```
 atlasfx-mvp/
-├── data-pipeline/            # Data processing pipeline (MVP scope)
-│   ├── pipeline.py           # Orchestration logic
-│   ├── merge.py              # Raw tick data merging
-│   ├── clean.py              # Data cleaning with gap analysis
-│   ├── aggregate.py          # Time-series aggregation
-│   ├── featurize.py          # Feature engineering
-│   ├── featurizers.py        # Feature calculators
-│   ├── aggregators.py        # Aggregation functions
-│   ├── normalize.py          # Normalization
-│   ├── split.py              # Train/val/test split
-│   ├── winsorize.py          # Outlier handling
-│   ├── visualize.py          # Data visualization
-│   ├── logger.py             # Logging utilities
-│   ├── pipeline.yaml         # Pipeline configuration
-│   └── requirements.txt      # Python dependencies
+├── src/atlasfx/              # Main package
+│   ├── data/                 # Data pipeline (refactored from data-pipeline/)
+│   │   ├── aggregators.py    # Aggregation functions
+│   │   ├── aggregation.py    # Time-series aggregation
+│   │   ├── cleaning.py       # Data cleaning with gap analysis
+│   │   ├── featurizers.py    # Feature calculators
+│   │   ├── featurization.py  # Feature engineering
+│   │   ├── loaders.py        # Data loading utilities
+│   │   ├── normalization.py  # Normalization
+│   │   ├── processors.py     # Data processors
+│   │   ├── splitters.py      # Train/val/test split
+│   │   └── winsorization.py  # Outlier handling
+│   ├── evaluation/           # Evaluation and visualization
+│   │   └── visualizers.py    # Data visualization
+│   ├── utils/                # Utilities
+│   │   └── logging.py        # Logging utilities
+│   ├── agents/               # RL agents (to be implemented)
+│   ├── models/               # VAE, TFT models (to be implemented)
+│   ├── environments/         # Trading environment (to be implemented)
+│   ├── training/             # Training utilities (to be implemented)
+│   └── config/               # Configuration schemas
+├── tests/                    # Comprehensive test suite
+│   ├── conftest.py           # Shared fixtures
+│   └── unit/data/            # Unit tests for data pipeline
+│       └── test_aggregators.py  # Tests for aggregators (13 tests, 100% pass)
 ├── docs/                     # Project documentation
 │   ├── ARCHITECTURE.md       # System architecture ✅
 │   ├── AUDIT_REPORT.md       # Repository assessment ✅
@@ -93,31 +103,26 @@ atlasfx-mvp/
 │   ├── MVP_ACTION_PLAN.md    # Implementation roadmap ✅
 │   ├── NEXT_STEPS.md         # Next steps and decisions ✅
 │   └── DONDE_ALMACENAR_DATOS.md  # Data storage analysis ✅
+├── configs/                  # Configuration files
+├── scripts/                  # Training/evaluation scripts
+├── notebooks/                # Jupyter notebooks
+├── experiments/              # Experiment tracking
+├── pyproject.toml            # Dependencies and project config
 └── README.md                 # This file
 ```
 
 **Removed (Obsolete):**
 - ❌ `agent/TD3/` - Wrong algorithm (TD3 instead of SAC), needs reimplementation
 - ❌ `test.ipynb` - Large exploratory notebook (5.6MB), insights documented
+- ❌ `data-pipeline/` - Refactored into `src/atlasfx/data/` with proper package structure
 
-**Future Structure (MVP Implementation):**
-```
-atlasfx-mvp/
-├── src/atlasfx/             # Main package (to be created)
-│   ├── data/                # Data pipeline (refactored from data-pipeline/)
-│   ├── models/              # VAE, TFT, SAC implementations
-│   ├── environments/        # Trading environment
-│   ├── agents/              # RL agent wrapper
-│   ├── utils/               # Shared utilities
-│   └── config/              # Configuration schemas
-├── tests/                   # Comprehensive test suite
-├── experiments/             # MLflow/W&B logs
-├── data/                    # Data (DVC tracked, see docs/DONDE_ALMACENAR_DATOS.md)
-├── docs/                    # Documentation (current + Sphinx)
-├── scripts/                 # Training/evaluation scripts
-├── pyproject.toml           # Dependencies and config
-└── README.md
-```
+**Next Steps (MVP Implementation):**
+- Implement VAE, TFT, and SAC models in `src/atlasfx/models/`
+- Create trading environment in `src/atlasfx/environments/`
+- Implement RL agent wrapper in `src/atlasfx/agents/`
+- Complete training utilities in `src/atlasfx/training/`
+- Add configuration schemas in `src/atlasfx/config/`
+- Expand test coverage to 80%+
 
 ---
 
