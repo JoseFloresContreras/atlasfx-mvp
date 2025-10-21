@@ -5,7 +5,6 @@ This module implements a β-VAE that learns compressed latent representations
 of high-dimensional market features.
 """
 
-
 import torch
 import torch.nn as nn
 

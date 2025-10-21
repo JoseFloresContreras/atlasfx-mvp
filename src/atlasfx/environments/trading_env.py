@@ -5,7 +5,6 @@ This module implements a gym-like environment for training SAC agents
 on forex trading.
 """
 
-
 import numpy as np
 
 
