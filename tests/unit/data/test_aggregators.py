@@ -11,15 +11,15 @@ import pytest
 
 # Import aggregator functions
 from atlasfx.data.aggregators import (
-    mean,
+    close,
     high,
     low,
-    close,
+    mean,
+    micro_price,
+    ofi,
     tick_count,
     volume,
     vwap,
-    ofi,
-    micro_price,
 )
 
 
