@@ -75,7 +75,7 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-    
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -86,11 +86,11 @@ jobs:
         # Install dependencies conditionally depending on Python version.
         # If Python >= 3.12 we install pandas-ta; otherwise skip it.
         if python -c "import sys; sys.exit(0 if sys.version_info >= (3,12) else 1)"; then
-          echo "Python >= 3.12 detected: installing full dependencies (including pandas-ta)..."
-          pip install pandas pyarrow numpy pyyaml pytest "pandas-ta>=0.3.14b"
+          echo "Python >= 3.12 detected: installing full dependencies (including pandas-ta and pytest-cov)..."
+          pip install pandas pyarrow numpy pyyaml pytest pytest-cov "pandas-ta>=0.3.14b"
         else
-          echo "Python < 3.12 detected: installing minimal compatible dependencies (skipping pandas-ta)..."
-          pip install pandas pyarrow numpy pyyaml pytest
+          echo "Python < 3.12 detected: installing minimal compatible dependencies (skipping pandas-ta but installing pytest-cov)..."
+          pip install pandas pyarrow numpy pyyaml pytest pytest-cov
         fi
     
     - name: Run tests with coverage
