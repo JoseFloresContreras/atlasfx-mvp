@@ -5,8 +5,6 @@ This module implements a β-VAE that learns compressed latent representations
 of high-dimensional market features.
 """
 
-from typing import Optional, Tuple
-
 import torch
 import torch.nn as nn
 
@@ -46,7 +44,7 @@ class Encoder(nn.Module):
         # - Output: mu and logvar vectors
         raise NotImplementedError("Encoder not implemented yet")
 
-    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Forward pass through encoder.
 
@@ -158,7 +156,7 @@ class VAE(nn.Module):
 
     def forward(
         self, x: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Forward pass through VAE.
 
@@ -209,7 +207,7 @@ def vae_loss(
     mu: torch.Tensor,
     logvar: torch.Tensor,
     beta: float = 1.0,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Compute β-VAE loss.
 

@@ -6,7 +6,7 @@ Supports flexible step execution order and dependency management.
 """
 
 import os
-from typing import Any, Dict, List
+from typing import Any
 
 import yaml
 
@@ -34,20 +34,20 @@ def load_pipeline_config(config_file="configs/data_pipeline.yaml"):
         dict: Pipeline configuration dictionary
     """
     try:
-        with open(config_file, "r") as file:
+        with open(config_file) as file:
             config = yaml.safe_load(file)
         return config
-    except FileNotFoundError:
+    except FileNotFoundError as e:
         error_msg = f"Pipeline configuration file '{config_file}' not found"
         log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
-        raise FileNotFoundError(error_msg)
+        raise FileNotFoundError(error_msg) from e
     except yaml.YAMLError as e:
         error_msg = f"Error parsing pipeline YAML file: {e}"
         log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
-        raise yaml.YAMLError(error_msg)
+        raise yaml.YAMLError(error_msg) from e
 
 
-def get_expected_input_files(step_name: str, pipeline_config: Dict[str, Any] = None):
+def get_expected_input_files(step_name: str, pipeline_config: dict[str, Any] = None):
     """
     Get the expected input files for a step based on the step name.
 
@@ -225,7 +225,7 @@ def get_expected_input_files(step_name: str, pipeline_config: Dict[str, Any] = N
         raise ValueError(error_msg)
 
 
-def generate_merge_config(pipeline_config: Dict[str, Any]) -> Dict[str, Any]:
+def generate_merge_config(pipeline_config: dict[str, Any]) -> dict[str, Any]:
     """
     Generate merge configuration dictionary.
 
@@ -248,8 +248,8 @@ def generate_merge_config(pipeline_config: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def generate_clean_ticks_config(
-    pipeline_config: Dict[str, Any], input_files: List[str]
-) -> Dict[str, Any]:
+    pipeline_config: dict[str, Any], input_files: list[str]
+) -> dict[str, Any]:
     """
     Generate clean configuration dictionary for tick data.
 
@@ -277,8 +277,8 @@ def generate_clean_ticks_config(
 
 
 def generate_aggregate_config(
-    pipeline_config: Dict[str, Any], input_files: List[str]
-) -> Dict[str, Any]:
+    pipeline_config: dict[str, Any], input_files: list[str]
+) -> dict[str, Any]:
     """
     Generate aggregate configuration dictionary.
 
@@ -302,7 +302,7 @@ def generate_aggregate_config(
     return aggregate_config
 
 
-def generate_split_config(pipeline_config: Dict[str, Any], input_file: str) -> Dict[str, Any]:
+def generate_split_config(pipeline_config: dict[str, Any], input_file: str) -> dict[str, Any]:
     """
     Generate split configuration dictionary.
 
@@ -325,8 +325,8 @@ def generate_split_config(pipeline_config: Dict[str, Any], input_file: str) -> D
 
 
 def generate_winsorize_config(
-    pipeline_config: Dict[str, Any], input_files: List[str]
-) -> Dict[str, Any]:
+    pipeline_config: dict[str, Any], input_files: list[str]
+) -> dict[str, Any]:
     """
     Generate winsorize configuration dictionary.
 
@@ -350,8 +350,8 @@ def generate_winsorize_config(
 
 
 def generate_clean_aggregated_config(
-    pipeline_config: Dict[str, Any], input_files: List[str]
-) -> Dict[str, Any]:
+    pipeline_config: dict[str, Any], input_files: list[str]
+) -> dict[str, Any]:
     """
     Generate clean configuration dictionary for aggregated data.
 
@@ -379,8 +379,8 @@ def generate_clean_aggregated_config(
 
 
 def generate_featurize_config(
-    pipeline_config: Dict[str, Any], input_files: List[str]
-) -> Dict[str, Any]:
+    pipeline_config: dict[str, Any], input_files: list[str]
+) -> dict[str, Any]:
     """
     Generate featurize configuration dictionary.
 
@@ -403,8 +403,8 @@ def generate_featurize_config(
 
 
 def generate_clean_featurized_config(
-    pipeline_config: Dict[str, Any], input_files: List[str]
-) -> Dict[str, Any]:
+    pipeline_config: dict[str, Any], input_files: list[str]
+) -> dict[str, Any]:
     """
     Generate clean configuration dictionary for featurized data.
 
@@ -432,8 +432,8 @@ def generate_clean_featurized_config(
 
 
 def generate_normalize_config(
-    pipeline_config: Dict[str, Any], input_files: List[str]
-) -> Dict[str, Any]:
+    pipeline_config: dict[str, Any], input_files: list[str]
+) -> dict[str, Any]:
     """
     Generate normalize configuration dictionary.
 
@@ -459,8 +459,8 @@ def generate_normalize_config(
 
 
 def generate_visualize_config(
-    pipeline_config: Dict[str, Any], input_files: List[str]
-) -> Dict[str, Any]:
+    pipeline_config: dict[str, Any], input_files: list[str]
+) -> dict[str, Any]:
     """
     Generate visualize configuration dictionary.
 
@@ -483,7 +483,7 @@ def generate_visualize_config(
     return visualize_config
 
 
-def validate_and_order_steps(steps_to_execute: List[str]) -> List[str]:
+def validate_and_order_steps(steps_to_execute: list[str]) -> list[str]:
     """
     Validate and reorder steps to execute in correct sequence with dependency warnings.
 
@@ -693,7 +693,7 @@ def run_pipeline(config_file="pipeline.yaml"):
 def main():
     """Main function to run the pipeline."""
     run_pipeline()
-    log.info(f"\n📋 Pipeline execution completed!")
+    log.info("\n📋 Pipeline execution completed!")
 
 
 if __name__ == "__main__":

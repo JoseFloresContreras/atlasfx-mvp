@@ -11,11 +11,8 @@ Key features:
 - Off-policy learning with replay buffer
 """
 
-from typing import Optional, Tuple
-
 import torch
 import torch.nn as nn
-from torch.distributions import Normal
 
 
 class Actor(nn.Module):
@@ -55,7 +52,7 @@ class Actor(nn.Module):
         # - Tanh squashing for bounded actions
         raise NotImplementedError("Actor not implemented yet")
 
-    def forward(self, state: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(self, state: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Forward pass through actor.
 
@@ -247,10 +244,14 @@ class SAC(nn.Module):
 
         θ_target = τ * θ + (1 - τ) * θ_target
         """
-        for param, target_param in zip(self.critic1.parameters(), self.critic1_target.parameters()):
+        for param, target_param in zip(
+            self.critic1.parameters(), self.critic1_target.parameters(), strict=True
+        ):
             target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
 
-        for param, target_param in zip(self.critic2.parameters(), self.critic2_target.parameters()):
+        for param, target_param in zip(
+            self.critic2.parameters(), self.critic2_target.parameters(), strict=True
+        ):
             target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
 
     def save(self, path: str) -> None:

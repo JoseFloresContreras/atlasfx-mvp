@@ -22,14 +22,14 @@ def load_config(config_file="aggregate.yaml"):
         with open(config_file) as file:
             config = yaml.safe_load(file)
         return config
-    except FileNotFoundError:
+    except FileNotFoundError as e:
         error_msg = f"Configuration file '{config_file}' not found"
         log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
-        raise FileNotFoundError(error_msg)
+        raise FileNotFoundError(error_msg) from e
     except yaml.YAMLError as e:
         error_msg = f"Error parsing YAML file: {e}"
         log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
-        raise yaml.YAMLError(error_msg)
+        raise yaml.YAMLError(error_msg) from e
 
 
 def load_aggregators(aggregator_names: list[str]) -> dict[str, Callable]:
@@ -110,7 +110,7 @@ def aggregate_data(
         result = {"start_time": int(window_start.timestamp() * 1000)}
 
         # Apply each aggregator function
-        for agg_name, agg_func in aggregators.items():
+        for _agg_name, agg_func in aggregators.items():
             # Get aggregator results (now returns a dictionary)
             agg_results = agg_func(window_start, window_duration, group)
 

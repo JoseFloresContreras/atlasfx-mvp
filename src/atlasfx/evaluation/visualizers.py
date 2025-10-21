@@ -52,14 +52,14 @@ def load_data(input_file: str) -> pd.DataFrame:
         df = pd.read_parquet(input_file)
         log.info(f"✅ Loaded {len(df):,} rows and {len(df.columns)} columns")
         return df
-    except FileNotFoundError:
+    except FileNotFoundError as e:
         error_msg = f"Input file not found: {input_file}"
         log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
-        raise FileNotFoundError(error_msg)
+        raise FileNotFoundError(error_msg) from e
     except Exception as e:
         error_msg = f"Error loading data from {input_file}: {e}"
         log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
-        raise Exception(error_msg)
+        raise Exception(error_msg) from e
 
 
 def generate_basic_statistics(
@@ -149,7 +149,7 @@ def generate_basic_statistics(
 
         # Get all numeric columns from all splits
         all_numeric_cols = set()
-        for split_name, split_stats in stats.items():
+        for _split_name, split_stats in stats.items():
             all_numeric_cols.update(split_stats["numeric_columns"])
 
         for col in sorted(all_numeric_cols):
@@ -174,7 +174,7 @@ def generate_basic_statistics(
 
         # Get all columns that have missing values in any split
         all_missing_cols = set()
-        for split_name, split_stats in stats.items():
+        for _split_name, split_stats in stats.items():
             for col, missing in split_stats["missing_values"].items():
                 if missing > 0:
                     all_missing_cols.add(col)
@@ -212,7 +212,7 @@ def generate_basic_statistics(
 
         # Get all columns from all splits
         all_cols = set()
-        for split_name, split_stats in stats.items():
+        for _split_name, split_stats in stats.items():
             all_cols.update(split_stats["data_types"].keys())
 
         for col in sorted(all_cols):
@@ -425,7 +425,7 @@ def run_visualize(config: dict[str, Any]):
 
         # Generate basic statistics for all splits
         log.info("\n📊 Generating basic statistics...")
-        stats = generate_basic_statistics(train_df, val_df, test_df, viz_dir, time_window)
+        generate_basic_statistics(train_df, val_df, test_df, viz_dir, time_window)
 
         # Create distribution plots with train/val/test splits
         log.info("\n📊 Creating distribution plots...")

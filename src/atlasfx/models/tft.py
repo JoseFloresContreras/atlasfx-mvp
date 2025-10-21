@@ -11,8 +11,6 @@ Key features:
 - Variable selection for feature importance
 """
 
-from typing import Dict, List, Optional, Tuple
-
 import torch
 import torch.nn as nn
 
@@ -42,7 +40,7 @@ class VariableSelectionNetwork(nn.Module):
         # TODO: Implement variable selection network
         raise NotImplementedError("VariableSelectionNetwork not implemented yet")
 
-    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Forward pass.
 
@@ -68,7 +66,7 @@ class GatedResidualNetwork(nn.Module):
         hidden_dim: int,
         output_dim: int,
         dropout: float = 0.1,
-        context_dim: Optional[int] = None,
+        context_dim: int | None = None,
     ) -> None:
         """
         Initialize GRN.
@@ -84,7 +82,7 @@ class GatedResidualNetwork(nn.Module):
         # TODO: Implement GRN architecture
         raise NotImplementedError("GatedResidualNetwork not implemented yet")
 
-    def forward(self, x: torch.Tensor, context: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, context: torch.Tensor | None = None) -> torch.Tensor:
         """
         Forward pass.
 
@@ -117,8 +115,8 @@ class TemporalFusionTransformer(nn.Module):
         num_encoder_layers: int = 2,
         num_decoder_layers: int = 2,
         dropout: float = 0.1,
-        forecast_horizons: List[int] = [1, 5, 10],
-        quantiles: List[float] = [0.1, 0.5, 0.9],
+        forecast_horizons: list[int] | None = None,
+        quantiles: list[float] | None = None,
     ) -> None:
         """
         Initialize TFT.
@@ -137,8 +135,8 @@ class TemporalFusionTransformer(nn.Module):
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.num_heads = num_heads
-        self.forecast_horizons = forecast_horizons
-        self.quantiles = quantiles
+        self.forecast_horizons = forecast_horizons if forecast_horizons is not None else [1, 5, 10]
+        self.quantiles = quantiles if quantiles is not None else [0.1, 0.5, 0.9]
 
         # TODO: Implement TFT components
         # - Variable selection network for input features
@@ -152,7 +150,7 @@ class TemporalFusionTransformer(nn.Module):
         self,
         past_observations: torch.Tensor,
         future_covariates: torch.Tensor,
-    ) -> Dict[str, torch.Tensor]:
+    ) -> dict[str, torch.Tensor]:
         """
         Forward pass through TFT.
 
@@ -173,7 +171,7 @@ class TemporalFusionTransformer(nn.Module):
         past_observations: torch.Tensor,
         future_covariates: torch.Tensor,
         return_quantiles: bool = True,
-    ) -> Dict[str, torch.Tensor]:
+    ) -> dict[str, torch.Tensor]:
         """
         Generate predictions with uncertainty estimates.
 
@@ -191,7 +189,7 @@ class TemporalFusionTransformer(nn.Module):
 def quantile_loss(
     predictions: torch.Tensor,
     targets: torch.Tensor,
-    quantiles: List[float],
+    quantiles: list[float],
 ) -> torch.Tensor:
     """
     Compute quantile loss for multi-quantile regression.
