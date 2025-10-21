@@ -554,7 +554,7 @@ def run_pipeline_step(step_name: str, step_function, config):
         raise
 
 
-def run_pipeline(config_file="pipeline.yaml"):
+def run_pipeline(config_file="configs/data_pipeline.yaml"):
     """
     Run the data processing pipeline with dynamic step execution.
 
@@ -692,7 +692,12 @@ def run_pipeline(config_file="pipeline.yaml"):
 
 def main():
     """Main function to run the pipeline."""
-    run_pipeline()
+    import sys
+
+    # Get config file from command line argument, default to configs/data_pipeline.yaml
+    config_file = sys.argv[1] if len(sys.argv) > 1 else "configs/data_pipeline.yaml"
+
+    run_pipeline(config_file)
     log.info("\n📋 Pipeline execution completed!")
 
 
