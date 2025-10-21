@@ -5,7 +5,6 @@ This module implements a gym-like environment for training SAC agents
 on forex trading.
 """
 
-from typing import Dict, Optional, Tuple
 
 import numpy as np
 
@@ -74,7 +73,7 @@ class TradingEnv:
         # TODO: Return initial observation
         raise NotImplementedError("TradingEnv reset not implemented yet")
 
-    def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, Dict]:
+    def step(self, action: np.ndarray) -> tuple[np.ndarray, float, bool, dict]:
         """
         Take action in environment.
 
@@ -174,7 +173,7 @@ class TradingEnv:
             print(f"Balance: ${self.balance:.2f}")
             print(f"Position: {self.position:.4f}")
             print(f"Total PnL: ${self.total_pnl:.2f}")
-            print(f"---")
+            print("---")
 
 
 class ReplayBuffer:
@@ -234,7 +233,7 @@ class ReplayBuffer:
         self.position = (self.position + 1) % self.capacity
         self.size = min(self.size + 1, self.capacity)
 
-    def sample(self, batch_size: int) -> Tuple:
+    def sample(self, batch_size: int) -> tuple:
         """
         Sample batch of transitions.
 

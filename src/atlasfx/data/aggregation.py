@@ -110,7 +110,7 @@ def aggregate_data(
         result = {"start_time": int(window_start.timestamp() * 1000)}
 
         # Apply each aggregator function
-        for agg_name, agg_func in aggregators.items():
+        for _agg_name, agg_func in aggregators.items():
             # Get aggregator results (now returns a dictionary)
             agg_results = agg_func(window_start, window_duration, group)
 

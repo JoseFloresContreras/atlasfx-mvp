@@ -5,7 +5,7 @@ Validates Level 1 tick data and aggregated features according to the schema
 defined in configs/schema.yaml.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -144,7 +144,6 @@ class DataValidator:
         cross_constraints = schema.get("cross_column_constraints", [])
         for constraint in cross_constraints:
             name = constraint.get("name", "unknown")
-            rule = constraint.get("rule", "")
             severity = constraint.get("severity", "error")
 
             if name == "no_crossed_spreads":

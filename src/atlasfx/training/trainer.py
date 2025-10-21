@@ -4,7 +4,6 @@ Training utilities for AtlasFX models.
 This module provides trainer classes for VAE, TFT, and SAC.
 """
 
-from typing import Dict, Optional
 
 import torch
 import torch.nn as nn
@@ -49,7 +48,7 @@ class VAETrainer:
         # TODO: Setup logging, checkpointing
         raise NotImplementedError("VAETrainer not implemented yet")
 
-    def train_epoch(self, dataloader: DataLoader) -> Dict[str, float]:
+    def train_epoch(self, dataloader: DataLoader) -> dict[str, float]:
         """
         Train for one epoch.
 
@@ -61,7 +60,7 @@ class VAETrainer:
         """
         raise NotImplementedError("VAETrainer train_epoch not implemented yet")
 
-    def validate(self, dataloader: DataLoader) -> Dict[str, float]:
+    def validate(self, dataloader: DataLoader) -> dict[str, float]:
         """
         Validate model on validation set.
 
@@ -108,7 +107,7 @@ class TFTTrainer:
         model: nn.Module,
         optimizer: torch.optim.Optimizer,
         device: torch.device,
-        quantiles: list[float] = [0.1, 0.5, 0.9],
+        quantiles: list[float] | None = None,
         checkpoint_dir: str = "models/tft/",
     ) -> None:
         """
@@ -124,13 +123,13 @@ class TFTTrainer:
         self.model = model
         self.optimizer = optimizer
         self.device = device
-        self.quantiles = quantiles
+        self.quantiles = quantiles if quantiles is not None else [0.1, 0.5, 0.9]
         self.checkpoint_dir = checkpoint_dir
 
         # TODO: Setup logging, checkpointing
         raise NotImplementedError("TFTTrainer not implemented yet")
 
-    def train_epoch(self, dataloader: DataLoader) -> Dict[str, float]:
+    def train_epoch(self, dataloader: DataLoader) -> dict[str, float]:
         """
         Train for one epoch.
 
@@ -142,7 +141,7 @@ class TFTTrainer:
         """
         raise NotImplementedError("TFTTrainer train_epoch not implemented yet")
 
-    def validate(self, dataloader: DataLoader) -> Dict[str, float]:
+    def validate(self, dataloader: DataLoader) -> dict[str, float]:
         """
         Validate model on validation set.
 
@@ -226,7 +225,7 @@ class SACTrainer:
         """
         raise NotImplementedError("SACTrainer collect_experience not implemented yet")
 
-    def train_step(self) -> Dict[str, float]:
+    def train_step(self) -> dict[str, float]:
         """
         Perform one training step (update networks).
 
@@ -251,7 +250,7 @@ class SACTrainer:
         """
         raise NotImplementedError("SACTrainer train not implemented yet")
 
-    def evaluate(self, num_episodes: int = 10) -> Dict[str, float]:
+    def evaluate(self, num_episodes: int = 10) -> dict[str, float]:
         """
         Evaluate agent on environment.
 
