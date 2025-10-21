@@ -79,7 +79,19 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -e ".[dev]"
+
+        # Install package editable without deps to avoid pip resolving pandas-ta
+        python -m pip install -e ".[dev]" --no-deps
+
+        # Install dependencies conditionally depending on Python version.
+        # If Python >= 3.12 we install pandas-ta; otherwise skip it.
+        if python -c "import sys; sys.exit(0 if sys.version_info >= (3,12) else 1)"; then
+          echo "Python >= 3.12 detected: installing full dependencies (including pandas-ta)..."
+          pip install pandas pyarrow numpy pyyaml pytest "pandas-ta>=0.3.14b"
+        else
+          echo "Python < 3.12 detected: installing minimal compatible dependencies (skipping pandas-ta)..."
+          pip install pandas pyarrow numpy pyyaml pytest
+        fi
     
     - name: Run tests with coverage
       run: |
