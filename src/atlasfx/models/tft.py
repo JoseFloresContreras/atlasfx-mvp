@@ -84,9 +84,7 @@ class GatedResidualNetwork(nn.Module):
         # TODO: Implement GRN architecture
         raise NotImplementedError("GatedResidualNetwork not implemented yet")
 
-    def forward(
-        self, x: torch.Tensor, context: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, context: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
         Forward pass.
 

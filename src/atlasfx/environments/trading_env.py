@@ -114,9 +114,7 @@ class TradingEnv:
         """
         raise NotImplementedError("_get_observation not implemented yet")
 
-    def _calculate_reward(
-        self, pnl: float, position_change: float, volatility: float
-    ) -> float:
+    def _calculate_reward(self, pnl: float, position_change: float, volatility: float) -> float:
         """
         Calculate reward for action.
 

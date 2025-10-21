@@ -221,46 +221,34 @@ class DataValidator:
             # High >= Low
             invalid_high_low = df["high"] < df["low"]
             if invalid_high_low.any():
-                errors.append(
-                    f"Found {invalid_high_low.sum()} bars where high < low"
-                )
+                errors.append(f"Found {invalid_high_low.sum()} bars where high < low")
 
             # High >= Open
             invalid_high_open = df["high"] < df["open"]
             if invalid_high_open.any():
-                errors.append(
-                    f"Found {invalid_high_open.sum()} bars where high < open"
-                )
+                errors.append(f"Found {invalid_high_open.sum()} bars where high < open")
 
             # High >= Close
             invalid_high_close = df["high"] < df["close"]
             if invalid_high_close.any():
-                errors.append(
-                    f"Found {invalid_high_close.sum()} bars where high < close"
-                )
+                errors.append(f"Found {invalid_high_close.sum()} bars where high < close")
 
             # Low <= Open
             invalid_low_open = df["low"] > df["open"]
             if invalid_low_open.any():
-                errors.append(
-                    f"Found {invalid_low_open.sum()} bars where low > open"
-                )
+                errors.append(f"Found {invalid_low_open.sum()} bars where low > open")
 
             # Low <= Close
             invalid_low_close = df["low"] > df["close"]
             if invalid_low_close.any():
-                errors.append(
-                    f"Found {invalid_low_close.sum()} bars where low > close"
-                )
+                errors.append(f"Found {invalid_low_close.sum()} bars where low > close")
 
         # Check positive prices
         for col in ["open", "high", "low", "close"]:
             if col in df.columns:
                 negative = df[col] <= 0
                 if negative.any():
-                    errors.append(
-                        f"Found {negative.sum()} non-positive values in '{col}'"
-                    )
+                    errors.append(f"Found {negative.sum()} non-positive values in '{col}'")
 
         # Check timestamp monotonicity
         if "timestamp" in df.columns:
@@ -313,17 +301,13 @@ class DataValidator:
         if "spread" in df.columns:
             negative_spread = df["spread"] < 0
             if negative_spread.any():
-                errors.append(
-                    f"Found {negative_spread.sum()} negative spread values"
-                )
+                errors.append(f"Found {negative_spread.sum()} negative spread values")
 
         # Check volume non-negative
         if "volume" in df.columns:
             negative_volume = df["volume"] < 0
             if negative_volume.any():
-                errors.append(
-                    f"Found {negative_volume.sum()} negative volume values"
-                )
+                errors.append(f"Found {negative_volume.sum()} negative volume values")
 
         is_valid = len(errors) == 0
         return is_valid, errors

@@ -55,9 +55,7 @@ class Actor(nn.Module):
         # - Tanh squashing for bounded actions
         raise NotImplementedError("Actor not implemented yet")
 
-    def forward(
-        self, state: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(self, state: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Forward pass through actor.
 
@@ -72,9 +70,7 @@ class Actor(nn.Module):
         """
         raise NotImplementedError("Actor forward not implemented yet")
 
-    def get_action(
-        self, state: torch.Tensor, deterministic: bool = False
-    ) -> torch.Tensor:
+    def get_action(self, state: torch.Tensor, deterministic: bool = False) -> torch.Tensor:
         """
         Get action from policy (for evaluation).
 
@@ -205,9 +201,7 @@ class SAC(nn.Module):
         # TODO: Setup optimizers
         raise NotImplementedError("SAC initialization not complete")
 
-    def select_action(
-        self, state: torch.Tensor, evaluate: bool = False
-    ) -> torch.Tensor:
+    def select_action(self, state: torch.Tensor, evaluate: bool = False) -> torch.Tensor:
         """
         Select action from policy.
 
@@ -253,14 +247,10 @@ class SAC(nn.Module):
 
         θ_target = τ * θ + (1 - τ) * θ_target
         """
-        for param, target_param in zip(
-            self.critic1.parameters(), self.critic1_target.parameters()
-        ):
+        for param, target_param in zip(self.critic1.parameters(), self.critic1_target.parameters()):
             target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
 
-        for param, target_param in zip(
-            self.critic2.parameters(), self.critic2_target.parameters()
-        ):
+        for param, target_param in zip(self.critic2.parameters(), self.critic2_target.parameters()):
             target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
 
     def save(self, path: str) -> None:

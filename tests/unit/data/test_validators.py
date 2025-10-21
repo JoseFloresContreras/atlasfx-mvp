@@ -130,9 +130,7 @@ class TestDataValidator:
         assert is_valid
         assert len(errors) == 0
 
-    def test_validate_ohlc_data_high_less_than_low(
-        self, valid_ohlc_data: pd.DataFrame
-    ) -> None:
+    def test_validate_ohlc_data_high_less_than_low(self, valid_ohlc_data: pd.DataFrame) -> None:
         """Test validation detects high < low."""
         validator = DataValidator(schema_path="configs/schema.yaml")
         df = valid_ohlc_data.copy()
@@ -143,9 +141,7 @@ class TestDataValidator:
         assert not is_valid
         assert any("high < low" in error for error in errors)
 
-    def test_validate_ohlc_data_high_less_than_open(
-        self, valid_ohlc_data: pd.DataFrame
-    ) -> None:
+    def test_validate_ohlc_data_high_less_than_open(self, valid_ohlc_data: pd.DataFrame) -> None:
         """Test validation detects high < open."""
         validator = DataValidator(schema_path="configs/schema.yaml")
         df = valid_ohlc_data.copy()
@@ -223,9 +219,7 @@ class TestValidateDataFrameFunction:
         # Should not raise
         validate_dataframe(valid_tick_data, data_type="tick_data")
 
-    def test_validate_dataframe_tick_data_invalid(
-        self, valid_tick_data: pd.DataFrame
-    ) -> None:
+    def test_validate_dataframe_tick_data_invalid(self, valid_tick_data: pd.DataFrame) -> None:
         """Test validate_dataframe raises for invalid tick data."""
         df = valid_tick_data.copy()
         df.loc[0, "bid"] = -1.0
