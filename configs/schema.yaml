@@ -1,0 +1,317 @@
+# Data Schema for AtlasFX
+# Defines the structure and validation rules for Level 1 tick data from Dukascopy
+
+# =============================================================================
+# Level 1 Tick Data Schema (Raw Data)
+# =============================================================================
+
+tick_data:
+  description: "Level 1 tick data from Dukascopy with bid/ask/volume"
+  source: "Dukascopy Historical Data Feed"
+  
+  required_columns:
+    timestamp:
+      type: datetime64[ns]
+      description: "UTC timestamp of the tick"
+      nullable: false
+      constraints:
+        - monotonic_increasing: true  # Timestamps must be in order
+        - timezone: "UTC"
+    
+    bid:
+      type: float64
+      description: "Bid price (best offer to sell)"
+      nullable: false
+      constraints:
+        - min_value: 0.0  # Prices must be positive
+        - max_value: 1e6  # Sanity check (no price > 1M)
+    
+    ask:
+      type: float64
+      description: "Ask price (best offer to buy)"
+      nullable: false
+      constraints:
+        - min_value: 0.0  # Prices must be positive
+        - max_value: 1e6  # Sanity check
+    
+    volume:
+      type: float64
+      description: "Tick volume (optional, may be 0 or NaN)"
+      nullable: true
+      constraints:
+        - min_value: 0.0  # Volume must be non-negative
+  
+  # Cross-column constraints
+  cross_column_constraints:
+    - name: "no_crossed_spreads"
+      description: "Ask must be >= Bid (no crossed spreads)"
+      rule: "ask >= bid"
+    
+    - name: "reasonable_spread"
+      description: "Spread should be < 1% of mid price"
+      rule: "(ask - bid) / ((ask + bid) / 2) < 0.01"
+      severity: "warning"  # Not a hard constraint, just a warning
+  
+  # Data quality checks
+  quality_checks:
+    - name: "no_duplicates"
+      description: "No duplicate timestamps"
+      rule: "timestamp.is_unique"
+    
+    - name: "no_gaps_large"
+      description: "No gaps > 1 hour in data"
+      rule: "timestamp.diff().max() < timedelta(hours=1)"
+      severity: "warning"
+    
+    - name: "no_outliers_extreme"
+      description: "Prices should not change by > 10% in one tick"
+      rule: "mid_price.pct_change().abs() < 0.1"
+      severity: "warning"
+
+# =============================================================================
+# Aggregated OHLC Data Schema (After Aggregation)
+# =============================================================================
+
+ohlc_data:
+  description: "Time-aggregated OHLC bars with volume"
+  
+  required_columns:
+    timestamp:
+      type: datetime64[ns]
+      description: "Start timestamp of the bar"
+      nullable: false
+      constraints:
+        - monotonic_increasing: true
+        - timezone: "UTC"
+    
+    open:
+      type: float64
+      description: "Opening mid-price"
+      nullable: false
+      constraints:
+        - min_value: 0.0
+    
+    high:
+      type: float64
+      description: "Highest mid-price in window"
+      nullable: false
+      constraints:
+        - min_value: 0.0
+    
+    low:
+      type: float64
+      description: "Lowest mid-price in window"
+      nullable: false
+      constraints:
+        - min_value: 0.0
+    
+    close:
+      type: float64
+      description: "Closing mid-price"
+      nullable: false
+      constraints:
+        - min_value: 0.0
+    
+    volume:
+      type: float64
+      description: "Total volume in window"
+      nullable: true
+      constraints:
+        - min_value: 0.0
+    
+    tick_count:
+      type: int64
+      description: "Number of ticks in window"
+      nullable: false
+      constraints:
+        - min_value: 0
+  
+  cross_column_constraints:
+    - name: "ohlc_order"
+      description: "High >= Open, Close >= Low, High >= Low"
+      rule: "(high >= open) and (high >= close) and (high >= low) and (low <= open) and (low <= close)"
+
+# =============================================================================
+# Feature Matrix Schema (After Featurization)
+# =============================================================================
+
+feature_matrix:
+  description: "Feature matrix for VAE input"
+  
+  required_columns:
+    timestamp:
+      type: datetime64[ns]
+      description: "Timestamp of the feature window"
+      nullable: false
+      constraints:
+        - monotonic_increasing: true
+    
+    # Price features
+    mid_price:
+      type: float64
+      description: "Mid price (bid + ask) / 2"
+      nullable: false
+    
+    returns:
+      type: float64
+      description: "Log returns"
+      nullable: true  # First value may be NaN
+    
+    spread:
+      type: float64
+      description: "Ask - Bid"
+      nullable: false
+      constraints:
+        - min_value: 0.0
+    
+    # Volume features
+    volume:
+      type: float64
+      description: "Volume"
+      nullable: true
+      constraints:
+        - min_value: 0.0
+    
+    # Microstructure features
+    vwap:
+      type: float64
+      description: "Volume-weighted average price"
+      nullable: true
+    
+    ofi:
+      type: float64
+      description: "Order flow imbalance"
+      nullable: true
+    
+    micro_price:
+      type: float64
+      description: "Micro price (order flow weighted)"
+      nullable: true
+  
+  quality_checks:
+    - name: "no_infinite_values"
+      description: "No infinite values in any column"
+      rule: "not any(column.isin([np.inf, -np.inf]) for column in df)"
+    
+    - name: "reasonable_returns"
+      description: "Returns should be < 100% (sanity check)"
+      rule: "returns.abs() < 1.0"
+      severity: "warning"
+
+# =============================================================================
+# Configuration Schema (Pipeline Configuration)
+# =============================================================================
+
+pipeline_config:
+  description: "Configuration for data pipeline"
+  
+  aggregation:
+    window_size:
+      type: str
+      description: "Aggregation window (e.g., '1min', '5min')"
+      allowed_values: ["1min", "5min", "10min", "15min", "30min", "1h"]
+    
+    aggregators:
+      type: list[str]
+      description: "List of aggregator functions to apply"
+      allowed_values: ["mean", "high", "low", "close", "vwap", "ofi", "micro_price", "volume", "tick_count"]
+  
+  normalization:
+    method:
+      type: str
+      description: "Normalization method"
+      allowed_values: ["zscore", "minmax", "robust"]
+    
+    clip_threshold:
+      type: float
+      description: "Z-score clipping threshold (e.g., 3.0 for 3 standard deviations)"
+      constraints:
+        - min_value: 0.0
+  
+  split:
+    train_ratio:
+      type: float
+      description: "Fraction of data for training"
+      constraints:
+        - min_value: 0.0
+        - max_value: 1.0
+    
+    val_ratio:
+      type: float
+      description: "Fraction of data for validation"
+      constraints:
+        - min_value: 0.0
+        - max_value: 1.0
+    
+    test_ratio:
+      type: float
+      description: "Fraction of data for testing"
+      constraints:
+        - min_value: 0.0
+        - max_value: 1.0
+    
+    cross_field_constraints:
+      - name: "ratios_sum_to_one"
+        rule: "train_ratio + val_ratio + test_ratio == 1.0"
+
+# =============================================================================
+# Instruments Configuration
+# =============================================================================
+
+instruments:
+  description: "Supported trading instruments"
+  
+  forex_pairs:
+    - symbol: "EURUSD"
+      description: "Euro / US Dollar"
+      min_tick: 0.00001  # 0.1 pip
+    
+    - symbol: "GBPUSD"
+      description: "British Pound / US Dollar"
+      min_tick: 0.00001
+    
+    - symbol: "USDJPY"
+      description: "US Dollar / Japanese Yen"
+      min_tick: 0.001  # 0.1 pip (different scale)
+    
+    - symbol: "USDCHF"
+      description: "US Dollar / Swiss Franc"
+      min_tick: 0.00001
+    
+    - symbol: "AUDUSD"
+      description: "Australian Dollar / US Dollar"
+      min_tick: 0.00001
+    
+    - symbol: "USDCAD"
+      description: "US Dollar / Canadian Dollar"
+      min_tick: 0.00001
+    
+    - symbol: "NZDUSD"
+      description: "New Zealand Dollar / US Dollar"
+      min_tick: 0.00001
+
+# =============================================================================
+# Validation Rules Reference
+# =============================================================================
+
+validation_rules:
+  description: "Reference for validation rule syntax"
+  
+  column_types:
+    - int64
+    - float64
+    - datetime64[ns]
+    - object
+    - bool
+  
+  constraint_types:
+    - min_value: "Minimum allowed value (inclusive)"
+    - max_value: "Maximum allowed value (inclusive)"
+    - allowed_values: "List of allowed values"
+    - monotonic_increasing: "Values must increase"
+    - nullable: "Whether NaN values are allowed"
+  
+  severity_levels:
+    - error: "Validation fails, stop processing"
+    - warning: "Log warning, continue processing"
+    - info: "Log info, continue processing"

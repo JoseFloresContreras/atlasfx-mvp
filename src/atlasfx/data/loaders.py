@@ -10,10 +10,10 @@ from atlasfx.utils.logging import log
 def load_and_merge_csvs_from_folder(folder_path: str) -> tuple[pd.DataFrame, list[dict[str, Any]]]:
     """
     Load and merge all CSV files from a specified folder.
-    
+
     Args:
         folder_path (str): Path to the folder containing CSV files
-        
+
     Returns:
         tuple[pd.DataFrame, list[dict]]: Merged dataframe and list of skipped files info
     """
@@ -23,7 +23,7 @@ def load_and_merge_csvs_from_folder(folder_path: str) -> tuple[pd.DataFrame, lis
         raise FileNotFoundError(error_msg)
 
     # Get all CSV files in the folder
-    csv_files = [f for f in os.listdir(folder_path) if f.endswith('.csv')]
+    csv_files = [f for f in os.listdir(folder_path) if f.endswith(".csv")]
 
     if not csv_files:
         log.warning(f"⚠️  No CSV files found in {folder_path}")
@@ -43,26 +43,20 @@ def load_and_merge_csvs_from_folder(folder_path: str) -> tuple[pd.DataFrame, lis
             # Check file size
             file_size = os.path.getsize(file_path)
             if file_size == 0:
-                skipped_files.append({
-                    'file': csv_file,
-                    'reason': 'Empty file (0 bytes)'
-                })
+                skipped_files.append({"file": csv_file, "reason": "Empty file (0 bytes)"})
                 continue
 
             # Read CSV file with float32 data types for numeric columns
             df = pd.read_csv(file_path)
 
             # Convert numeric columns to float32 to reduce memory usage
-            numeric_columns = df.select_dtypes(include=['number']).columns
+            numeric_columns = df.select_dtypes(include=["number"]).columns
             for col in numeric_columns:
-                df[col] = df[col].astype('float32')
+                df[col] = df[col].astype("float32")
 
             # Check if dataframe is empty
             if df.empty:
-                skipped_files.append({
-                    'file': csv_file,
-                    'reason': 'Empty dataframe (0 rows)'
-                })
+                skipped_files.append({"file": csv_file, "reason": "Empty dataframe (0 rows)"})
                 continue
 
             dataframes.append(df)
@@ -81,10 +75,11 @@ def load_and_merge_csvs_from_folder(folder_path: str) -> tuple[pd.DataFrame, lis
 
     return merged_df, skipped_files
 
+
 def print_skipped_files_summary(skipped_files: list[dict[str, Any]]):
     """
     Print a summary of skipped files.
-    
+
     Args:
         skipped_files (list[Dict]): List of dictionaries containing skipped file info
     """
@@ -98,10 +93,10 @@ def print_skipped_files_summary(skipped_files: list[dict[str, Any]]):
     # Group by reason
     reasons = {}
     for file_info in skipped_files:
-        reason = file_info['reason']
+        reason = file_info["reason"]
         if reason not in reasons:
             reasons[reason] = []
-        reasons[reason].append(file_info['file'])
+        reasons[reason].append(file_info["file"])
 
     # Print grouped summary
     for reason, files in reasons.items():
@@ -111,16 +106,19 @@ def print_skipped_files_summary(skipped_files: list[dict[str, Any]]):
 
     log.info("=" * 60)
 
-def process_single_symbol(symbol: str, folder_path: str, output_directory: str, suffix: str = '') -> str:
+
+def process_single_symbol(
+    symbol: str, folder_path: str, output_directory: str, suffix: str = ""
+) -> str:
     """
     Process a single symbol and save the merged result.
-    
+
     Args:
         symbol (str): Symbol name
         folder_path (str): Path to the folder containing CSV files
         output_directory (str): Directory to save the output file
         suffix (str): Suffix to add to the output filename (e.g., '-pair', '-instrument')
-        
+
     Returns:
         str: Output file path if successful, None otherwise
     """
@@ -153,7 +151,7 @@ def process_single_symbol(symbol: str, folder_path: str, output_directory: str, 
 
         # Save merged data with float32 precision
         log.info(f"💾 Saving to: {output_path}")
-        merged_df.to_parquet(output_path, engine='pyarrow', compression='snappy')
+        merged_df.to_parquet(output_path, engine="pyarrow", compression="snappy")
 
         log.info(f"✅ Successfully saved {len(merged_df)} rows to {output_path}")
         return output_path
@@ -162,10 +160,11 @@ def process_single_symbol(symbol: str, folder_path: str, output_directory: str, 
         log.error(f"❌ Error merging {symbol}: {e}")
         raise e
 
+
 def run_merge(config):
     """
     Run the merge process with the specified configuration.
-    
+
     Args:
         config (dict[str, Any]): Configuration dictionary containing pairs, instruments and output directory settings
     """
@@ -174,11 +173,11 @@ def run_merge(config):
         log.info("=" * 50)
 
         # Extract configuration values
-        output_directory = config['output_directory']
+        output_directory = config["output_directory"]
 
         # Get pairs and instruments configurations
-        pairs_config = config.get('pairs', [])
-        instruments_config = config.get('instruments', [])
+        pairs_config = config.get("pairs", [])
+        instruments_config = config.get("instruments", [])
 
         log.info(f"📁 Output directory: {output_directory}")
         log.info(f"🔤 Pairs to process: {len(pairs_config)}")
@@ -190,10 +189,12 @@ def run_merge(config):
         if pairs_config:
             log.info(f"\n💱 Processing {len(pairs_config)} pairs...")
             for symbol_config in pairs_config:
-                symbol = symbol_config['symbol']
-                folder_path = symbol_config['folder_path']
+                symbol = symbol_config["symbol"]
+                folder_path = symbol_config["folder_path"]
 
-                output_path = process_single_symbol(symbol, folder_path, output_directory, suffix='-pair')
+                output_path = process_single_symbol(
+                    symbol, folder_path, output_directory, suffix="-pair"
+                )
                 if output_path:
                     total_processed += 1
 
@@ -201,10 +202,12 @@ def run_merge(config):
         if instruments_config:
             log.info(f"\n📊 Processing {len(instruments_config)} instruments...")
             for symbol_config in instruments_config:
-                symbol = symbol_config['symbol']
-                folder_path = symbol_config['folder_path']
+                symbol = symbol_config["symbol"]
+                folder_path = symbol_config["folder_path"]
 
-                output_path = process_single_symbol(symbol, folder_path, output_directory, suffix='-instrument')
+                output_path = process_single_symbol(
+                    symbol, folder_path, output_directory, suffix="-instrument"
+                )
                 if output_path:
                     total_processed += 1
 
