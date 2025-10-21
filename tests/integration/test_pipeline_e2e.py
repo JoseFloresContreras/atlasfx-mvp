@@ -147,9 +147,9 @@ class TestPipelineE2E:
 
             # Check monotonic timestamps
             if "timestamp" in df.columns:
-                assert (
-                    df["timestamp"].is_monotonic_increasing
-                ), f"Timestamps not monotonic in {parquet_file.name}"
+                assert df[
+                    "timestamp"
+                ].is_monotonic_increasing, f"Timestamps not monotonic in {parquet_file.name}"
 
             # Check positive prices
             if "bid" in df.columns:

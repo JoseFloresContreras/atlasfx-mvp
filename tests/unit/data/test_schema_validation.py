@@ -71,9 +71,9 @@ class TestTickDataSchemaValidation:
 
     def test_tick_data_monotonic_timestamps(self, sample_tick_data: pd.DataFrame) -> None:
         """Test that timestamps are monotonically increasing."""
-        assert (
-            sample_tick_data["timestamp"].is_monotonic_increasing
-        ), "Timestamps must be monotonically increasing"
+        assert sample_tick_data[
+            "timestamp"
+        ].is_monotonic_increasing, "Timestamps must be monotonically increasing"
 
 
 class TestOHLCDataSchemaValidation:
@@ -111,14 +111,10 @@ class TestOHLCDataSchemaValidation:
     def test_ohlc_relationships(self, sample_ohlc_data: pd.DataFrame) -> None:
         """Test OHLC relationships (high >= low, high >= open/close, etc.)."""
         # High >= Low
-        assert (
-            sample_ohlc_data["high"] >= sample_ohlc_data["low"]
-        ).all(), "High must be >= Low"
+        assert (sample_ohlc_data["high"] >= sample_ohlc_data["low"]).all(), "High must be >= Low"
 
         # High >= Open
-        assert (
-            sample_ohlc_data["high"] >= sample_ohlc_data["open"]
-        ).all(), "High must be >= Open"
+        assert (sample_ohlc_data["high"] >= sample_ohlc_data["open"]).all(), "High must be >= Open"
 
         # High >= Close
         assert (
@@ -126,14 +122,10 @@ class TestOHLCDataSchemaValidation:
         ).all(), "High must be >= Close"
 
         # Low <= Open
-        assert (
-            sample_ohlc_data["low"] <= sample_ohlc_data["open"]
-        ).all(), "Low must be <= Open"
+        assert (sample_ohlc_data["low"] <= sample_ohlc_data["open"]).all(), "Low must be <= Open"
 
         # Low <= Close
-        assert (
-            sample_ohlc_data["low"] <= sample_ohlc_data["close"]
-        ).all(), "Low must be <= Close"
+        assert (sample_ohlc_data["low"] <= sample_ohlc_data["close"]).all(), "Low must be <= Close"
 
 
 class TestFeatureMatrixSchemaValidation:
@@ -155,9 +147,7 @@ class TestFeatureMatrixSchemaValidation:
             }
         )
 
-    def test_feature_matrix_conform_to_schema(
-        self, sample_feature_matrix: pd.DataFrame
-    ) -> None:
+    def test_feature_matrix_conform_to_schema(self, sample_feature_matrix: pd.DataFrame) -> None:
         """Test that feature matrix conforms to feature_matrix schema."""
         validator = DataValidator(schema_path="configs/schema.yaml")
         is_valid, errors = validator.validate_feature_matrix(sample_feature_matrix)
@@ -165,9 +155,7 @@ class TestFeatureMatrixSchemaValidation:
         assert is_valid, f"Feature matrix failed validation: {errors}"
         assert len(errors) == 0
 
-    def test_feature_matrix_no_infinite_values(
-        self, sample_feature_matrix: pd.DataFrame
-    ) -> None:
+    def test_feature_matrix_no_infinite_values(self, sample_feature_matrix: pd.DataFrame) -> None:
         """Test that feature matrix has no infinite values."""
         import numpy as np
 
@@ -181,22 +169,16 @@ class TestFeatureMatrixSchemaValidation:
     ) -> None:
         """Test that spread and volume are non-negative."""
         if "spread" in sample_feature_matrix.columns:
-            assert (
-                sample_feature_matrix["spread"] >= 0
-            ).all(), "Spread must be non-negative"
+            assert (sample_feature_matrix["spread"] >= 0).all(), "Spread must be non-negative"
 
         if "volume" in sample_feature_matrix.columns:
-            assert (
-                sample_feature_matrix["volume"] >= 0
-            ).all(), "Volume must be non-negative"
+            assert (sample_feature_matrix["volume"] >= 0).all(), "Volume must be non-negative"
 
 
 class TestPipelineSchemaIntegration:
     """Test schema validation across pipeline stages."""
 
-    def test_validate_dataframe_function_tick_data(
-        self, sample_tick_data: pd.DataFrame
-    ) -> None:
+    def test_validate_dataframe_function_tick_data(self, sample_tick_data: pd.DataFrame) -> None:
         """Test validate_dataframe function with tick data."""
         # Should not raise
         validate_dataframe(sample_tick_data, data_type="tick_data")
