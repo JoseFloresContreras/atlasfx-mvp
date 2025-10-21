@@ -137,11 +137,51 @@ atlasfx-mvp/
 
 ### Installation
 
+#### Quick Setup (Recommended)
+
 ```bash
 # Clone the repository
 git clone https://github.com/JoseFloresContreras/atlasfx-mvp.git
 cd atlasfx-mvp
 
+# Run automated setup script
+chmod +x scripts/setup_env.sh
+./scripts/setup_env.sh
+
+# Activate virtual environment
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+```
+
+#### Manual Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/JoseFloresContreras/atlasfx-mvp.git
+cd atlasfx-mvp
+
+# Create virtual environment
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Upgrade pip
+pip install --upgrade pip
+
+# Install dependencies
+pip install -e ".[dev]"
+
+# Install type stubs for better type checking
+pip install pandas-stubs types-PyYAML
+
+# Install pre-commit hooks
+pre-commit install
+
+# Verify installation
+pytest tests/ -v
+```
+
+#### Using Poetry (Alternative)
+
+```bash
 # Install Poetry (if not already installed)
 curl -sSL https://install.python-poetry.org | python3 -
 
