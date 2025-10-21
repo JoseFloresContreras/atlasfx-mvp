@@ -1,0 +1,81 @@
+# Workflow de CI para atlasfx-mvp
+# Prueba el código en múltiples versiones de Python y recopila diagnósticos de pandas-ta
+# Referencia original: https://github.com/JoseFloresContreras/atlasfx-mvp/blob/0fc54eb9d2ea867cea417a9a0d512dc764fce53b/.github/workflows/ci.yml
+
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      # No fallar rápido - queremos ver resultados de todas las versiones
+      fail-fast: false
+      matrix:
+        # Matriz reducida enfocada en versiones estables y recientes
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    
+    steps:
+    # Checkout del código
+    - uses: actions/checkout@v4
+    
+    # Configurar la versión de Python del matrix
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    # Actualizar herramientas de instalación
+    - name: Upgrade pip, setuptools, and wheel
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+    
+    # Imprimir información de diagnóstico del entorno
+    - name: Print Python and pip version info
+      run: |
+        python -V
+        python -m pip --version
+        python -m pip debug --verbose || true
+    
+    # Recopilar versiones disponibles de pandas-ta desde PyPI
+    - name: Collect pandas-ta available versions
+      run: |
+        python -m pip index versions pandas-ta > pandas_ta_versions.txt || echo "index failed" > pandas_ta_versions.txt
+    
+    # Intentar instalar pandas-ta para verificar compatibilidad
+    - name: Test pandas-ta installation
+      run: |
+        python -m pip install "pandas-ta>=0" > pandas_ta_install.txt 2>&1 || true
+    
+    # Subir diagnósticos como artifacts para análisis posterior
+    - name: Upload pandas-ta diagnostics
+      uses: actions/upload-artifact@v4
+      with:
+        name: pandas-ta-diagnostics-${{ matrix.python-version }}
+        path: |
+          pandas_ta_versions.txt
+          pandas_ta_install.txt
+    
+    # Instalar dependencias de desarrollo del proyecto
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+    
+    # Ejecutar tests con cobertura
+    - name: Run tests
+      run: |
+        pytest tests/ -v --cov=src/atlasfx --cov-report=xml
+    
+    # Subir reporte de cobertura a Codecov
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: false
