@@ -6,17 +6,19 @@ Supports flexible step execution order and dependency management.
 """
 
 import os
+from typing import Any, Dict, List
+
 import yaml
-from typing import Dict, List, Any
+
+from atlasfx.data.aggregation import run_aggregate
+from atlasfx.data.cleaning import run_clean
+from atlasfx.data.featurization import run_featurize
 
 # Import the run functions from each module
 from atlasfx.data.loaders import run_merge
-from atlasfx.data.cleaning import run_clean
-from atlasfx.data.aggregation import run_aggregate
+from atlasfx.data.normalization import run_normalize
 from atlasfx.data.splitters import run_split
 from atlasfx.data.winsorization import run_winsorize
-from atlasfx.data.featurization import run_featurize
-from atlasfx.data.normalization import run_normalize
 from atlasfx.evaluation.visualizers import run_visualize
 from atlasfx.utils.logging import log
 
