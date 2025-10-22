@@ -180,7 +180,7 @@ class TestFixtureDataCompliance:
 
     def test_sample_ticks_complies_with_schema(self) -> None:
         """Test that sample_ticks.csv complies with tick_data schema."""
-        df = pd.read_csv("tests/fixtures/sample_ticks.csv", parse_dates=["timestamp"])
+        df = pd.read_csv("tests/fixtures/sample_ticks.csv", parse_dates=["timestamp"], encoding="utf-8")
         validator = DataValidator()
         
         is_valid, errors = validator.validate_tick_data(df)
@@ -189,7 +189,7 @@ class TestFixtureDataCompliance:
 
     def test_sample_ticks_has_required_columns(self) -> None:
         """Test that sample_ticks.csv has all required columns."""
-        df = pd.read_csv("tests/fixtures/sample_ticks.csv")
+        df = pd.read_csv("tests/fixtures/sample_ticks.csv", encoding="utf-8")
         
         # Check required columns from schema
         required_columns = ["timestamp", "bid", "ask", "volume"]
@@ -198,7 +198,7 @@ class TestFixtureDataCompliance:
 
     def test_sample_ticks_column_types(self) -> None:
         """Test that sample_ticks.csv has correct column types."""
-        df = pd.read_csv("tests/fixtures/sample_ticks.csv", parse_dates=["timestamp"])
+        df = pd.read_csv("tests/fixtures/sample_ticks.csv", parse_dates=["timestamp"], encoding="utf-8")
         
         # Check types match schema
         assert pd.api.types.is_datetime64_any_dtype(df["timestamp"])
@@ -208,7 +208,7 @@ class TestFixtureDataCompliance:
 
     def test_sample_ticks_price_constraints(self) -> None:
         """Test that sample_ticks.csv satisfies price constraints."""
-        df = pd.read_csv("tests/fixtures/sample_ticks.csv")
+        df = pd.read_csv("tests/fixtures/sample_ticks.csv", encoding="utf-8")
         
         # Prices should be positive
         assert (df["bid"] > 0).all(), "Bid prices must be positive"
@@ -220,14 +220,14 @@ class TestFixtureDataCompliance:
 
     def test_sample_ticks_no_crossed_spreads(self) -> None:
         """Test that sample_ticks.csv has no crossed spreads."""
-        df = pd.read_csv("tests/fixtures/sample_ticks.csv")
+        df = pd.read_csv("tests/fixtures/sample_ticks.csv", encoding="utf-8")
         
         # Ask should be >= Bid
         assert (df["ask"] >= df["bid"]).all(), "Found crossed spreads (ask < bid)"
 
     def test_sample_ticks_monotonic_timestamps(self) -> None:
         """Test that sample_ticks.csv has monotonically increasing timestamps."""
-        df = pd.read_csv("tests/fixtures/sample_ticks.csv", parse_dates=["timestamp"])
+        df = pd.read_csv("tests/fixtures/sample_ticks.csv", parse_dates=["timestamp"], encoding="utf-8")
         
         assert df["timestamp"].is_monotonic_increasing, "Timestamps not monotonic increasing"
 
@@ -235,7 +235,7 @@ class TestFixtureDataCompliance:
         """Test that testusd_tick_data.csv complies with tick_data schema."""
         df = pd.read_csv(
             "tests/fixtures/e2e_test_data/testusd_tick_data.csv",
-            parse_dates=["timestamp"]
+            parse_dates=["timestamp", encoding="utf-8"]
         )
         validator = DataValidator()
         
@@ -245,7 +245,7 @@ class TestFixtureDataCompliance:
 
     def test_testusd_tick_data_has_required_columns(self) -> None:
         """Test that testusd_tick_data.csv has all required columns."""
-        df = pd.read_csv("tests/fixtures/e2e_test_data/testusd_tick_data.csv")
+        df = pd.read_csv("tests/fixtures/e2e_test_data/testusd_tick_data.csv", encoding="utf-8")
         
         required_columns = ["timestamp", "bid", "ask", "volume"]
         for col in required_columns:
@@ -255,7 +255,7 @@ class TestFixtureDataCompliance:
         """Test that testusd_tick_data.csv has correct column types."""
         df = pd.read_csv(
             "tests/fixtures/e2e_test_data/testusd_tick_data.csv",
-            parse_dates=["timestamp"]
+            parse_dates=["timestamp", encoding="utf-8"]
         )
         
         assert pd.api.types.is_datetime64_any_dtype(df["timestamp"])
@@ -265,7 +265,7 @@ class TestFixtureDataCompliance:
 
     def test_testusd_tick_data_no_crossed_spreads(self) -> None:
         """Test that testusd_tick_data.csv has no crossed spreads."""
-        df = pd.read_csv("tests/fixtures/e2e_test_data/testusd_tick_data.csv")
+        df = pd.read_csv("tests/fixtures/e2e_test_data/testusd_tick_data.csv", encoding="utf-8")
         
         assert (df["ask"] >= df["bid"]).all(), "Found crossed spreads (ask < bid)"
 
