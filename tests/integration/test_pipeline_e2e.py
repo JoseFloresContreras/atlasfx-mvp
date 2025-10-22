@@ -1,5 +1,4 @@
-"""
-End-to-End integration tests for the data pipeline.
+"""End-to-End integration tests for the data pipeline.
 
 This module tests the full pipeline execution from raw tick data through
 aggregation, ensuring outputs conform to schema at each stage.
@@ -7,6 +6,7 @@ aggregation, ensuring outputs conform to schema at each stage.
 
 import os
 import shutil
+import sys
 from pathlib import Path
 
 import pandas as pd
@@ -41,7 +41,7 @@ class TestPipelineE2E:
         import subprocess
 
         result = subprocess.run(
-            ["python", "scripts/run_data_pipeline.py", "tests/fixtures/e2e_pipeline_config.yaml"],
+            [sys.executable, "scripts/run_data_pipeline.py", "tests/fixtures/e2e_pipeline_config.yaml"],
             capture_output=True,
             text=True,
         )
@@ -82,7 +82,7 @@ class TestPipelineE2E:
         import subprocess
 
         result = subprocess.run(
-            ["python", "scripts/run_data_pipeline.py", "tests/fixtures/e2e_pipeline_config.yaml"],
+            [sys.executable, "scripts/run_data_pipeline.py", "tests/fixtures/e2e_pipeline_config.yaml"],
             capture_output=True,
             text=True,
         )
@@ -120,7 +120,7 @@ class TestPipelineE2E:
         import subprocess
 
         result = subprocess.run(
-            ["python", "scripts/run_data_pipeline.py", "tests/fixtures/e2e_pipeline_config.yaml"],
+            [sys.executable, "scripts/run_data_pipeline.py", "tests/fixtures/e2e_pipeline_config.yaml"],
             capture_output=True,
             text=True,
         )
@@ -163,7 +163,7 @@ class TestPipelineE2E:
         import subprocess
 
         result = subprocess.run(
-            ["python", "scripts/run_data_pipeline.py", "tests/fixtures/e2e_pipeline_config.yaml"],
+            [sys.executable, "scripts/run_data_pipeline.py", "tests/fixtures/e2e_pipeline_config.yaml"],
             capture_output=True,
             text=True,
         )
@@ -207,16 +207,6 @@ class TestPipelineConfigValidation:
         assert "time_column" in merge_config, "Missing 'time_column' in merge config"
         assert "pairs" in merge_config, "Missing 'pairs' in merge config"
 
-    def test_test_data_exists(self) -> None:
-        """Test that test data files exist."""
-        test_data_file = "tests/fixtures/e2e_test_data/testusd_tick_data.csv"
-        assert os.path.exists(test_data_file), f"Test data file not found: {test_data_file}"
-
-        # Check that file is readable and has content
-        df = pd.read_csv(test_data_file)
-        assert len(df) > 0, "Test data file is empty"
-
-
 class TestValidatorCLI:
     """Test the validator CLI functionality."""
 
@@ -225,15 +215,7 @@ class TestValidatorCLI:
         import subprocess
 
         result = subprocess.run(
-            [
-                "python",
-                "-m",
-                "atlasfx.data.validators",
-                "--sample",
-                "tests/fixtures/sample_ticks.csv",
-                "--type",
-                "tick_data",
-            ],
+            [sys.executable, "-m", "atlasfx.data.validators", "--sample", "tests/fixtures/sample_ticks.csv", "--type", "tick_data"],
             capture_output=True,
             text=True,
         )
@@ -246,15 +228,7 @@ class TestValidatorCLI:
         import subprocess
 
         result = subprocess.run(
-            [
-                "python",
-                "-m",
-                "atlasfx.data.validators",
-                "--sample",
-                "tests/fixtures/e2e_test_data/testusd_tick_data.csv",
-                "--type",
-                "tick_data",
-            ],
+            [sys.executable, "-m", "atlasfx.data.validators", "--sample", "tests/fixtures/e2e_test_data/testusd_tick_data.csv", "--type", "tick_data"],
             capture_output=True,
             text=True,
         )
@@ -275,15 +249,7 @@ class TestValidatorCLI:
         import subprocess
 
         result = subprocess.run(
-            [
-                "python",
-                "-m",
-                "atlasfx.data.validators",
-                "--sample",
-                str(invalid_file),
-                "--type",
-                "tick_data",
-            ],
+            [sys.executable, "-m", "atlasfx.data.validators", "--sample", str(invalid_file), "--type", "tick_data"],
             capture_output=True,
             text=True,
         )
