@@ -83,8 +83,8 @@ jobs:
         # Install package editable without deps to avoid pip resolving pandas-ta
         python -m pip install -e ".[dev]" --no-deps
 
-        # Install dependencies conditionally depending on Python version.
-        # If Python >= 3.12 we install pandas-ta; otherwise skip it.
+        # Ensure pytest-cov is available so pytest recognizes --cov flags.
+        # Install core runtime/test deps; install pandas-ta only if Python >= 3.12.
         if python -c "import sys; sys.exit(0 if sys.version_info >= (3,12) else 1)"; then
           echo "Python >= 3.12 detected: installing full dependencies (including pandas-ta and pytest-cov)..."
           pip install pandas pyarrow numpy pyyaml pytest pytest-cov "pandas-ta>=0.3.14b"
