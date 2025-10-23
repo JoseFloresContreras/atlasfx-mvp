@@ -567,9 +567,14 @@ def run_pipeline(config_file="configs/data_pipeline.yaml"):
     Args:
         config_file (str): Path to the pipeline configuration file
     """
-    # 🔧 Normalize working directory and paths
-    from pathlib import Path
     import os
+    from pathlib import Path
+    
+    print("\n=== DEBUG CWD AT START OF PIPELINE ===")
+    print(f"Current working directory: {os.getcwd()}")
+    print(f"__file__ resolved: {Path(__file__).resolve()}")
+    print(f"Repository root guess: {Path(__file__).resolve().parents[1]}")
+    print("========================\n")
 
     # Always run relative paths from repo root
     REPO_ROOT = Path(__file__).resolve().parent.parent
