@@ -240,6 +240,13 @@ def generate_merge_config(pipeline_config: dict[str, Any]) -> dict[str, Any]:
     Returns:
         Dict[str, Any]: Generated merge configuration dictionary
     """
+    import os
+    from pathlib import Path
+    print("\n🧩 ENTERING generate_merge_config()")
+    print(f"📂 Working directory at entry: {os.getcwd()}")
+    print(f"🔧 pipeline_config keys: {list(pipeline_config.keys())}")
+    print(f"🔍 merge section: {pipeline_config.get('merge')}")
+
     log.info("\n🔧 Generating merge configuration...")
 
     merge_config = {
