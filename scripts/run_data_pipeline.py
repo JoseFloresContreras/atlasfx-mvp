@@ -555,6 +555,7 @@ def run_pipeline_step(step_name: str, step_function, config):
 
 
 def run_pipeline(config_file="configs/data_pipeline.yaml"):
+    print(f"[DEBUG inside run_pipeline] config_file={repr(config_file)}")
     """
     Run the data processing pipeline with dynamic step execution.
 
