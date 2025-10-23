@@ -41,7 +41,7 @@ def test_pipeline_e2e():
 
     # Step 3: First pipeline run
     result1 = subprocess.run(
-        [sys.executable, str(pipeline_script), str(config_file)],
+        [sys.executable, str(pipeline_script), "--config", str(config_file)],
         capture_output=True,
         text=True,
     )
@@ -67,7 +67,7 @@ def test_pipeline_e2e():
 
     # Step 4: Second pipeline run (test idempotency)
     result2 = subprocess.run(
-        [sys.executable, str(pipeline_script), str(config_file)],
+        [sys.executable, str(pipeline_script), "--config", str(config_file)],
         capture_output=True,
         text=True,
     )
