@@ -32,8 +32,179 @@ def cleanup_output_dir():
         shutil.rmtree("tests/fixtures/e2e_test_output")
 
 
+def cleanup_directory(output_dir: str) -> None:
+    """Clean up output directory before running tests."""
+    if os.path.exists(output_dir):
+        shutil.rmtree(output_dir)
+
+
+def validate_parquet_file(parquet_file: Path, validator: DataValidator) -> None:
+    """
+    Validate a single parquet file with extended checks.
+    
+    Validates:
+    - Required columns (timestamp, bid, ask, volume)
+    - Correct types (datetime, float)
+    - ask >= bid always
+    - No duplicates in timestamp
+    - DataFrame not empty
+    
+    Args:
+        parquet_file: Path to parquet file to validate
+        validator: DataValidator instance
+        
+    Raises:
+        AssertionError: If any validation check fails
+    """
+    df = pd.read_parquet(parquet_file)
+    
+    # Check 1: DataFrame not empty
+    assert len(df) > 0, f"Output file {parquet_file.name} is empty"
+    
+    # Convert timestamp to datetime if needed (parquet may store as string)
+    if "timestamp" in df.columns and not pd.api.types.is_datetime64_any_dtype(df["timestamp"]):
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+    
+    # Check 2: Required columns present
+    required_columns = ["timestamp", "bid", "ask"]
+    for col in required_columns:
+        assert col in df.columns, f"Missing required column {col} in {parquet_file.name}"
+    
+    # Check 3: Correct types
+    assert pd.api.types.is_datetime64_any_dtype(df["timestamp"]), (
+        f"timestamp must be datetime type in {parquet_file.name}"
+    )
+    assert pd.api.types.is_float_dtype(df["bid"]), (
+        f"bid must be float type in {parquet_file.name}"
+    )
+    assert pd.api.types.is_float_dtype(df["ask"]), (
+        f"ask must be float type in {parquet_file.name}"
+    )
+    
+    # Check 4: ask >= bid always
+    crossed = df["ask"] < df["bid"]
+    assert not crossed.any(), (
+        f"Found {crossed.sum()} crossed spreads (ask < bid) in {parquet_file.name}"
+    )
+    
+    # Check 5: No duplicates in timestamp
+    duplicates = df["timestamp"].duplicated().sum()
+    assert duplicates == 0, (
+        f"Found {duplicates} duplicate timestamps in {parquet_file.name}"
+    )
+    
+    # Check 6: Use DataValidator for comprehensive validation
+    is_valid, errors = validator.validate_tick_data(df)
+    assert is_valid, (
+        f"Pipeline output {parquet_file.name} failed validation:\n" + 
+        "\n".join(f"  - {error}" for error in errors)
+    )
+
+
+@pytest.mark.integration
 class TestPipelineE2E:
     """End-to-end tests for the data pipeline."""
+
+    @pytest.mark.parametrize(
+        "pairs,output_directory",
+        [
+            (["testusd"], "tests/fixtures/e2e_test_output_A"),
+            (["eurusd"], "tests/fixtures/e2e_test_output_B"),
+            (["gbpusd"], "tests/fixtures/e2e_test_output_C"),
+            (["testusd", "eurusd"], "tests/fixtures/e2e_test_output_D"),
+            (["testusd", "eurusd", "gbpusd"], "tests/fixtures/e2e_test_output_E"),
+        ],
+    )
+    def test_pipeline_with_multiple_pairs(self, pairs: list[str], output_directory: str) -> None:
+        """
+        Test pipeline execution with different pairs and output directories.
+        
+        This parametrized test runs the pipeline with:
+        - Single pairs (testusd, eurusd, gbpusd)
+        - Multiple pair combinations
+        - Different output directories
+        
+        For each configuration, validates:
+        - Pipeline runs successfully
+        - Output files are created
+        - All parquet files pass extended validation
+        """
+        # Clean up output directory before running
+        cleanup_directory(output_directory)
+        
+        # Create a temporary config file for this test
+        import yaml
+        import tempfile
+        
+        config_path = "tests/fixtures/e2e_pipeline_config.yaml"
+        with open(config_path) as f:
+            config = yaml.safe_load(f)
+        
+        # Update config with specific pairs and output directory
+        pair_configs = []
+        for pair in pairs:
+            if pair == "testusd":
+                pair_configs.append({
+                    "symbol": "testusd",
+                    "folder_path": "tests/fixtures/e2e_test_data"
+                })
+            elif pair == "eurusd":
+                pair_configs.append({
+                    "symbol": "eurusd",
+                    "folder_path": "tests/fixtures/e2e_test_data/eurusd"
+                })
+            elif pair == "gbpusd":
+                pair_configs.append({
+                    "symbol": "gbpusd",
+                    "folder_path": "tests/fixtures/e2e_test_data/gbpusd"
+                })
+        
+        config["merge"]["pairs"] = pair_configs
+        config["output_directory"] = output_directory
+        
+        # Write temporary config
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            yaml.safe_dump(config, f)
+            temp_config_path = f.name
+        
+        try:
+            # Run the pipeline
+            import subprocess
+            
+            result = subprocess.run(
+                [sys.executable, "scripts/run_data_pipeline.py", temp_config_path],
+                capture_output=True,
+                text=True,
+            )
+            
+            # Check that pipeline ran successfully
+            assert result.returncode == 0, (
+                f"Pipeline failed for pairs {pairs}:\n"
+                f"STDOUT: {result.stdout}\n"
+                f"STDERR: {result.stderr}"
+            )
+            
+            # Check that output directory was created
+            output_dir = Path(output_directory)
+            assert output_dir.exists(), f"Output directory {output_directory} was not created"
+            
+            # Find generated parquet files
+            parquet_files = list(output_dir.glob("*.parquet"))
+            assert len(parquet_files) > 0, f"No parquet files were generated for pairs {pairs}"
+            
+            # Validate each parquet file with extended validation
+            validator = DataValidator(schema_path="configs/schema.yaml")
+            
+            for parquet_file in parquet_files:
+                validate_parquet_file(parquet_file, validator)
+        
+        finally:
+            # Clean up temporary config file
+            if os.path.exists(temp_config_path):
+                os.unlink(temp_config_path)
+            
+            # Clean up output directory
+            cleanup_directory(output_directory)
 
     def test_pipeline_merge_step(self, cleanup_output_dir) -> None:
         """Test that pipeline merge step produces valid output."""
@@ -183,6 +354,7 @@ class TestPipelineE2E:
             assert len(df) > 0, f"Empty dataframe in {parquet_file.name}"
 
 
+@pytest.mark.integration
 class TestPipelineConfigValidation:
     """Test pipeline configuration validation."""
 
@@ -207,6 +379,7 @@ class TestPipelineConfigValidation:
         assert "time_column" in merge_config, "Missing 'time_column' in merge config"
         assert "pairs" in merge_config, "Missing 'pairs' in merge config"
 
+@pytest.mark.integration
 class TestValidatorCLI:
     """Test the validator CLI functionality."""
 

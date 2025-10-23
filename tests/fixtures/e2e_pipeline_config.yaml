@@ -15,10 +15,14 @@ output_directory: tests/fixtures/e2e_test_output
 # Step 1: Merge Configuration
 merge:
   time_column: timestamp
-  # Single pair for minimal testing
+  # Multiple pairs for extended testing
   pairs:
     - symbol: testusd
       folder_path: tests/fixtures/e2e_test_data
+    - symbol: eurusd
+      folder_path: tests/fixtures/e2e_test_data/eurusd
+    - symbol: gbpusd
+      folder_path: tests/fixtures/e2e_test_data/gbpusd
   instruments: []
 
 # Step 2: Aggregate Configuration
