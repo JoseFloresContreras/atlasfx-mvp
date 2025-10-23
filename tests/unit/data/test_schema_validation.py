@@ -235,7 +235,7 @@ class TestFixtureDataCompliance:
         """Test that testusd_tick_data.csv complies with tick_data schema."""
         df = pd.read_csv(
             "tests/fixtures/e2e_test_data/testusd_tick_data.csv",
-            parse_dates=["timestamp", encoding="utf-8"]
+            parse_dates=["timestamp"], encoding="utf-8"
         )
         validator = DataValidator()
         
