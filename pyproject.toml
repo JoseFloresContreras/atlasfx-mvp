@@ -51,11 +51,10 @@ addopts = [
     "--cov-report=term-missing",
     "--cov-report=html",
 ]
-
-# Custom test markers
 markers = [
     "integration: marks tests as integration tests (slow, full-pipeline)"
 ]
+
 
 
 [tool.mypy]
