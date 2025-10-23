@@ -567,6 +567,19 @@ def run_pipeline(config_file="configs/data_pipeline.yaml"):
     Args:
         config_file (str): Path to the pipeline configuration file
     """
+    # 🔧 Normalize working directory and paths
+    from pathlib import Path
+    import os
+
+    # Always run relative paths from repo root
+    REPO_ROOT = Path(__file__).resolve().parent.parent
+    os.chdir(REPO_ROOT)
+
+    # Normalize config_file to absolute path
+    config_file = Path(config_file)
+    if not config_file.is_absolute():
+        config_file = REPO_ROOT / config_file
+
     try:
         log.info("🎯 DYNAMIC FOREX DATA PROCESSING PIPELINE", also_print=True)
         log.info("=" * 60, also_print=True)
@@ -581,6 +594,7 @@ def run_pipeline(config_file="configs/data_pipeline.yaml"):
             log.error("❌ No steps specified in pipeline configuration")
             return
 
+        
         log.info(f"📋 Steps to execute: {', '.join(steps_to_execute)}", also_print=True)
 
         # Validate and reorder steps with dependency warnings
