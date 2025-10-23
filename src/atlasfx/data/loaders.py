@@ -17,6 +17,7 @@ def load_and_merge_csvs_from_folder(folder_path: str) -> tuple[pd.DataFrame, lis
     Returns:
         tuple[pd.DataFrame, list[dict]]: Merged dataframe and list of skipped files info
     """
+    folder_path = str(folder_path)  # ← Asegura compatibilidad absoluta en Windows y Linux
     if not os.path.exists(folder_path):
         error_msg = f"Folder '{folder_path}' does not exist"
         log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
