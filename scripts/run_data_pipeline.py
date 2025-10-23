@@ -712,6 +712,8 @@ def main():
     # 🔍 Debug temporal
     print(f"[DEBUG] sys.argv: {__import__('sys').argv}")
     print(f"[DEBUG] args.config: {args.config}")
+    print(f"[DEBUG main] args.config = {args.config}")
+
 
     
     run_pipeline(args.config)
