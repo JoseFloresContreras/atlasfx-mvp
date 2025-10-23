@@ -58,7 +58,7 @@ markers = [
 
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -70,13 +70,8 @@ warn_unused_ignores = true
 warn_no_return = true
 strict_equality = true
 
-[tool.mypy.overrides."pandas_ta.*"]
-ignore_missing_imports = true
-
-[tool.mypy.overrides."yaml.*"]
-ignore_missing_imports = true
-
-[tool.mypy.overrides."tqdm.*"]
+[[tool.mypy.overrides]]
+module = ["pandas_ta.*", "yaml.*", "tqdm.*"]
 ignore_missing_imports = true
 
 [tool.black]
