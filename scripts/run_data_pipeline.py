@@ -22,6 +22,11 @@ from atlasfx.data.winsorization import run_winsorize
 from atlasfx.evaluation.visualizers import run_visualize
 from atlasfx.utils.logging import log
 
+import os, sys
+# 👇 Asegura que el script se ejecute desde la raíz del proyecto
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 
 def load_pipeline_config(config_file="configs/data_pipeline.yaml"):
     """
@@ -235,6 +240,13 @@ def generate_merge_config(pipeline_config: dict[str, Any]) -> dict[str, Any]:
     Returns:
         Dict[str, Any]: Generated merge configuration dictionary
     """
+    import os
+    from pathlib import Path
+    print("\n🧩 ENTERING generate_merge_config()")
+    print(f"📂 Working directory at entry: {os.getcwd()}")
+    print(f"🔧 pipeline_config keys: {list(pipeline_config.keys())}")
+    print(f"🔍 merge section: {pipeline_config.get('merge')}")
+
     log.info("\n🔧 Generating merge configuration...")
 
     merge_config = {
@@ -540,6 +552,10 @@ def run_pipeline_step(step_name: str, step_function, config):
         step_function: Function to run the step
         config (Dict[str, Any]): Configuration dictionary for the step
     """
+    print(f"🧩 ENTERING run_pipeline_step → step_name={step_name}")
+    print(f"📂 Working directory: {os.getcwd()}")
+    print(f"🗂️ Config passed: {config}")
+
     try:
         log.info(f"\n{'='*60}", also_print=True)
         log.info(f"🚀 Starting {step_name} step...", also_print=True)
@@ -555,12 +571,31 @@ def run_pipeline_step(step_name: str, step_function, config):
 
 
 def run_pipeline(config_file="configs/data_pipeline.yaml"):
+    print(f"[DEBUG inside run_pipeline] config_file={repr(config_file)}")
     """
     Run the data processing pipeline with dynamic step execution.
 
     Args:
         config_file (str): Path to the pipeline configuration file
     """
+    import os
+    from pathlib import Path
+    
+    print("\n=== DEBUG CWD AT START OF PIPELINE ===")
+    print(f"Current working directory: {os.getcwd()}")
+    print(f"__file__ resolved: {Path(__file__).resolve()}")
+    print(f"Repository root guess: {Path(__file__).resolve().parents[1]}")
+    print("========================\n")
+
+    # Always run relative paths from repo root
+    REPO_ROOT = Path(__file__).resolve().parent.parent
+    os.chdir(REPO_ROOT)
+
+    # Normalize config_file to absolute path
+    config_file = Path(config_file)
+    if not config_file.is_absolute():
+        config_file = REPO_ROOT / config_file
+
     try:
         log.info("🎯 DYNAMIC FOREX DATA PROCESSING PIPELINE", also_print=True)
         log.info("=" * 60, also_print=True)
@@ -575,6 +610,7 @@ def run_pipeline(config_file="configs/data_pipeline.yaml"):
             log.error("❌ No steps specified in pipeline configuration")
             return
 
+        
         log.info(f"📋 Steps to execute: {', '.join(steps_to_execute)}", also_print=True)
 
         # Validate and reorder steps with dependency warnings
@@ -584,8 +620,12 @@ def run_pipeline(config_file="configs/data_pipeline.yaml"):
         pipeline_success = True
         executed_steps = []
 
+        print("\n🧭 ENTERING PIPELINE LOOP")
+        print(f"Steps to execute: {steps_to_execute}")
+
         # Execute each step in order
         for i, step_name in enumerate(steps_to_execute, 1):
+            print(f"➡️  Currently evaluating step_name: {step_name}")
             log.info(
                 f"\n📊 Pipeline Step {i}/{len(steps_to_execute)}: {step_name.upper()}",
                 also_print=True,
@@ -597,7 +637,16 @@ def run_pipeline(config_file="configs/data_pipeline.yaml"):
             # Run the step
             try:
                 if step_name == "merge":
-                    run_pipeline_step(step_name, run_merge, generate_merge_config(pipeline_config))
+                    print("\n🔥 DEBUG: about to run merge step")
+                    print(f"→ Current working dir: {os.getcwd()}")
+                    print(f"→ File __file__: {__file__}")
+                    print(f"→ pipeline_config keys: {list(pipeline_config.keys())}")
+                
+                    merge_config = generate_merge_config(pipeline_config)
+                    print(f"→ merge_config: {merge_config}")
+                
+                    run_pipeline_step(step_name, run_merge, merge_config)
+
                 elif step_name == "clean_ticks":
                     run_pipeline_step(
                         step_name,
@@ -692,13 +741,35 @@ def run_pipeline(config_file="configs/data_pipeline.yaml"):
 
 def main():
     """Main function to run the pipeline."""
+    import argparse
     import sys
 
-    # Get config file from command line argument, default to configs/data_pipeline.yaml
-    config_file = sys.argv[1] if len(sys.argv) > 1 else "configs/data_pipeline.yaml"
+    # ✅ Imprime los argumentos reales que llegan desde PowerShell
+    print(f"[DEBUG sys.argv] {sys.argv}")
 
-    run_pipeline(config_file)
+    parser = argparse.ArgumentParser(description="Run the AtlasFX data processing pipeline")
+    parser.add_argument(
+        "--config",
+        type=str,
+        help="Path to the pipeline configuration YAML file.",
+    )
+
+    args, unknown = parser.parse_known_args()
+
+    # ✅ Nueva lógica: detecta si PowerShell rompió el argumento
+    if args.config in (None, "--config"):
+        if len(sys.argv) > 2 and sys.argv[-1].endswith(".yaml"):
+            args.config = sys.argv[-1]
+            print(f"[DEBUG FIX] PowerShell mode detected, using last arg: {args.config}")
+        else:
+            args.config = "configs/data_pipeline.yaml"
+            print(f"[DEBUG DEFAULT] Using default config: {args.config}")
+
+    print(f"[DEBUG main] args.config = {args.config}")
+
+    run_pipeline(args.config)
     log.info("\n📋 Pipeline execution completed!")
+
 
 
 if __name__ == "__main__":
