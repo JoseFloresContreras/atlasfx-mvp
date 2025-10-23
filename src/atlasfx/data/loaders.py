@@ -10,15 +10,24 @@ from atlasfx.utils.logging import log
 def load_and_merge_csvs_from_folder(folder_path: str) -> tuple[pd.DataFrame, list[dict[str, Any]]]:
     """
     Load and merge all CSV files from a specified folder.
-
-    Args:
-        folder_path (str): Path to the folder containing CSV files
-
-    Returns:
-        tuple[pd.DataFrame, list[dict]]: Merged dataframe and list of skipped files info
     """
-    folder_path = str(folder_path)  # ← Asegura compatibilidad absoluta en Windows y Linux
-    if not os.path.exists(folder_path):
+    from pathlib import Path
+    import os
+
+    print("\n=== DEBUG PATH INFO ===")
+    print(f"Current working directory: {os.getcwd()}")
+    print(f"Original folder_path arg: {folder_path} (type={type(folder_path)})")
+
+    # Ensure it's a Path object
+    folder_path = Path(folder_path)
+    if not folder_path.is_absolute():
+        folder_path = Path(__file__).resolve().parents[3] / folder_path
+
+    print(f"Resolved absolute folder_path: {folder_path}")
+    print(f"Does folder exist? {folder_path.exists()}")
+    print("========================\n")
+
+    if not folder_path.exists():
         error_msg = f"Folder '{folder_path}' does not exist"
         log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
         raise FileNotFoundError(error_msg)
