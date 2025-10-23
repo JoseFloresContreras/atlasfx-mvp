@@ -161,6 +161,9 @@ def process_single_symbol(
         raise e
 
 
+from pathlib import Path
+import os
+
 def run_merge(config):
     """
     Run the merge process with the specified configuration.
@@ -169,26 +172,20 @@ def run_merge(config):
         config (dict[str, Any]): Configuration dictionary containing pairs, instruments and output directory settings
     """
     try:
+        # --- Ensure relative paths resolve from repo root ---
+        REPO_ROOT = Path(__file__).resolve().parents[3]  # → sube desde src/atlasfx/data hasta atlasfx-mvp
+        os.chdir(REPO_ROOT)
+
         log.info("🚀 Starting CSV Merge Process")
         log.info("=" * 50)
 
-        # Extract configuration values
-        output_directory = config["output_directory"]
-
-        from pathlib import Path
-        import os
-        
-        # Ensure all paths are absolute (relative to repo root)
-        REPO_ROOT = Path(__file__).resolve().parents[3]  # → sube desde src/atlasfx/data hasta atlasfx-mvp
-        os.chdir(REPO_ROOT)
-        
-        # Normalize output_directory to absolute path
-        output_directory = Path(output_directory)
+        # --- Normalize output directory ---
+        output_directory = Path(config["output_directory"])
         if not output_directory.is_absolute():
             output_directory = REPO_ROOT / output_directory
+        output_directory.mkdir(parents=True, exist_ok=True)
 
-
-        # Get pairs and instruments configurations
+        # --- Extract pair/instrument configs ---
         pairs_config = config.get("pairs", [])
         instruments_config = config.get("instruments", [])
 
@@ -198,7 +195,7 @@ def run_merge(config):
 
         total_processed = 0
 
-        # Process pairs
+        # --- Process pairs ---
         if pairs_config:
             log.info(f"\n💱 Processing {len(pairs_config)} pairs...")
             for symbol_config in pairs_config:
@@ -213,7 +210,7 @@ def run_merge(config):
                 if output_path:
                     total_processed += 1
 
-        # Process instruments
+        # --- Process instruments ---
         if instruments_config:
             log.info(f"\n📊 Processing {len(instruments_config)} instruments...")
             for symbol_config in instruments_config:
@@ -228,7 +225,7 @@ def run_merge(config):
                 if output_path:
                     total_processed += 1
 
-        # Display final summary
+        # --- Summary ---
         log.info("\n🎯 Merge Process Summary:")
         log.info("=" * 50)
         log.info(f"   💱 Total pairs: {len(pairs_config)}")
@@ -236,7 +233,6 @@ def run_merge(config):
         log.info(f"   ✅ Successfully processed: {total_processed}")
         log.info(f"   📁 Output directory: {output_directory}")
         log.info("\n🎉 All symbols processed successfully!")
-
         log.info("=" * 50)
 
     except Exception as e:
