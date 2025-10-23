@@ -127,6 +127,14 @@ def process_single_symbol(
         log.info(f"\n🔄 Processing symbol: {symbol}")
         log.info(f"📁 Loading CSV files from: {folder_path}")
 
+        # ✅ Normalize folder_path to absolute (relative to repo root)
+        from pathlib import Path
+        REPO_ROOT = Path(__file__).resolve().parents[3]
+        folder_path = Path(folder_path)
+        if not folder_path.is_absolute():
+            folder_path = REPO_ROOT / folder_path
+        log.info(f"📂 Normalized folder path: {folder_path}")
+
         # Load and merge CSV files
         merged_df, skipped_files = load_and_merge_csvs_from_folder(folder_path)
 
