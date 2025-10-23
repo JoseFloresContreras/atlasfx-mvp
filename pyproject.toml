@@ -70,12 +70,13 @@ warn_unused_ignores = true
 warn_no_return = true
 strict_equality = true
 
-[[tool.mypy.overrides]]
-module = [
-    "pandas_ta.*",
-    "yaml.*",
-    "tqdm.*",
-]
+[tool.mypy.overrides."pandas_ta.*"]
+ignore_missing_imports = true
+
+[tool.mypy.overrides."yaml.*"]
+ignore_missing_imports = true
+
+[tool.mypy.overrides."tqdm.*"]
 ignore_missing_imports = true
 
 [tool.black]
