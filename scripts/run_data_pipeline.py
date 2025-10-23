@@ -609,8 +609,12 @@ def run_pipeline(config_file="configs/data_pipeline.yaml"):
         pipeline_success = True
         executed_steps = []
 
+        print("\n🧭 ENTERING PIPELINE LOOP")
+        print(f"Steps to execute: {steps_to_execute}")
+
         # Execute each step in order
         for i, step_name in enumerate(steps_to_execute, 1):
+            print(f"➡️  Currently evaluating step_name: {step_name}")
             log.info(
                 f"\n📊 Pipeline Step {i}/{len(steps_to_execute)}: {step_name.upper()}",
                 also_print=True,
