@@ -205,6 +205,9 @@ def run_merge(config):
     Args:
         config (dict[str, Any]): Configuration dictionary containing pairs, instruments and output directory settings
     """
+    import os
+    from pathlib import Path
+    
     try:
         # --- Ensure relative paths resolve from repo root ---
         REPO_ROOT = Path(__file__).resolve().parents[3]  # → sube desde src/atlasfx/data hasta atlasfx-mvp
@@ -213,8 +216,6 @@ def run_merge(config):
         print("🔥 run_merge() has started")
 
         # 🧩 DEBUG BLOCK
-        import os
-        from pathlib import Path
         print("\n🔍 DEBUG INSIDE run_merge")
         print(f"📂 Current working directory: {os.getcwd()}")
         print(f"📁 Output directory (raw): {config.get('output_directory')}")
