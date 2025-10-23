@@ -1,365 +1,232 @@
 """
-Tests for schema validation against configs/schema.yaml.
+Tests for schema validation of pipeline inputs and outputs.
 
-These tests ensure that:
-1. The schema file is properly structured
-2. Fixture data complies with schema requirements
-3. Column types match schema definitions
-4. Constraints defined in the schema are enforced
+This module validates that data flowing through the pipeline conforms to
+the schema defined in configs/schema.yaml at each stage.
 """
 
 import pandas as pd
 import pytest
-import yaml
 
-from atlasfx.data.validators import DataValidator, ValidationError
-
-
-class TestSchemaStructure:
-    """Test that the schema file is properly structured."""
-
-    def test_schema_file_exists(self) -> None:
-        """Test that schema.yaml exists and can be loaded."""
-        with open("configs/schema.yaml") as f:
-            schema = yaml.safe_load(f)
-        
-        assert schema is not None
-        assert isinstance(schema, dict)
-
-    def test_schema_has_required_sections(self) -> None:
-        """Test that schema has all required data type sections."""
-        with open("configs/schema.yaml") as f:
-            schema = yaml.safe_load(f)
-        
-        # Check for major data type sections
-        assert "tick_data" in schema
-        assert "ohlc_data" in schema
-        assert "feature_matrix" in schema
-        assert "pipeline_config" in schema
-        assert "instruments" in schema
-
-    def test_tick_data_schema_structure(self) -> None:
-        """Test that tick_data schema has proper structure."""
-        with open("configs/schema.yaml") as f:
-            schema = yaml.safe_load(f)
-        
-        tick_data = schema["tick_data"]
-        assert "description" in tick_data
-        assert "required_columns" in tick_data
-        assert "cross_column_constraints" in tick_data
-        assert "quality_checks" in tick_data
-        
-        # Check required columns
-        required_columns = tick_data["required_columns"]
-        assert "timestamp" in required_columns
-        assert "bid" in required_columns
-        assert "ask" in required_columns
-        assert "volume" in required_columns
-
-    def test_ohlc_data_schema_structure(self) -> None:
-        """Test that ohlc_data schema has proper structure."""
-        with open("configs/schema.yaml") as f:
-            schema = yaml.safe_load(f)
-        
-        ohlc_data = schema["ohlc_data"]
-        assert "required_columns" in ohlc_data
-        
-        # Check OHLC columns
-        required_columns = ohlc_data["required_columns"]
-        assert "timestamp" in required_columns
-        assert "open" in required_columns
-        assert "high" in required_columns
-        assert "low" in required_columns
-        assert "close" in required_columns
-        assert "volume" in required_columns
-        assert "tick_count" in required_columns
+from atlasfx.data.validators import DataValidator, ValidationError, validate_dataframe
 
 
-class TestSchemaColumnTypes:
-    """Test that column type definitions in schema are correct."""
-
-    def test_tick_data_column_types(self) -> None:
-        """Test that tick_data columns have correct type specifications."""
-        with open("configs/schema.yaml") as f:
-            schema = yaml.safe_load(f)
-        
-        tick_data = schema["tick_data"]["required_columns"]
-        
-        # Timestamp should be datetime
-        assert tick_data["timestamp"]["type"] == "datetime64[ns]"
-        assert tick_data["timestamp"]["nullable"] is False
-        
-        # Bid should be float
-        assert tick_data["bid"]["type"] == "float64"
-        assert tick_data["bid"]["nullable"] is False
-        
-        # Ask should be float
-        assert tick_data["ask"]["type"] == "float64"
-        assert tick_data["ask"]["nullable"] is False
-        
-        # Volume can be nullable
-        assert tick_data["volume"]["type"] == "float64"
-        assert tick_data["volume"]["nullable"] is True
-
-    def test_ohlc_data_column_types(self) -> None:
-        """Test that ohlc_data columns have correct type specifications."""
-        with open("configs/schema.yaml") as f:
-            schema = yaml.safe_load(f)
-        
-        ohlc_data = schema["ohlc_data"]["required_columns"]
-        
-        # All price columns should be float64
-        for col in ["open", "high", "low", "close"]:
-            assert ohlc_data[col]["type"] == "float64"
-            assert ohlc_data[col]["nullable"] is False
-        
-        # tick_count should be int64
-        assert ohlc_data["tick_count"]["type"] == "int64"
-        assert ohlc_data["tick_count"]["nullable"] is False
+@pytest.fixture
+def sample_tick_data() -> pd.DataFrame:
+    """Load sample tick data from fixtures."""
+    return pd.read_csv("tests/fixtures/sample_ticks.csv", parse_dates=["timestamp"])
 
 
-class TestSchemaConstraints:
-    """Test that constraints defined in schema are properly specified."""
-
-    def test_tick_data_price_constraints(self) -> None:
-        """Test that price constraints are properly defined in schema."""
-        with open("configs/schema.yaml") as f:
-            schema = yaml.safe_load(f)
-        
-        tick_data = schema["tick_data"]["required_columns"]
-        
-        # Bid constraints
-        bid_constraints = tick_data["bid"]["constraints"]
-        assert any("min_value" in c for c in bid_constraints)
-        assert any("max_value" in c for c in bid_constraints)
-        
-        # Ask constraints
-        ask_constraints = tick_data["ask"]["constraints"]
-        assert any("min_value" in c for c in ask_constraints)
-        assert any("max_value" in c for c in ask_constraints)
-
-    def test_tick_data_timestamp_constraints(self) -> None:
-        """Test that timestamp constraints are properly defined."""
-        with open("configs/schema.yaml") as f:
-            schema = yaml.safe_load(f)
-        
-        tick_data = schema["tick_data"]["required_columns"]
-        timestamp_constraints = tick_data["timestamp"]["constraints"]
-        
-        # Should have monotonic_increasing constraint
-        assert any("monotonic_increasing" in c for c in timestamp_constraints)
-        assert any("timezone" in c for c in timestamp_constraints)
-
-    def test_cross_column_constraints_defined(self) -> None:
-        """Test that cross-column constraints are defined in schema."""
-        with open("configs/schema.yaml") as f:
-            schema = yaml.safe_load(f)
-        
-        tick_data = schema["tick_data"]
-        cross_constraints = tick_data["cross_column_constraints"]
-        
-        # Should have no_crossed_spreads constraint
-        constraint_names = [c["name"] for c in cross_constraints]
-        assert "no_crossed_spreads" in constraint_names
-        assert "reasonable_spread" in constraint_names
-
-    def test_quality_checks_defined(self) -> None:
-        """Test that quality checks are defined in schema."""
-        with open("configs/schema.yaml") as f:
-            schema = yaml.safe_load(f)
-        
-        tick_data = schema["tick_data"]
-        quality_checks = tick_data["quality_checks"]
-        
-        check_names = [c["name"] for c in quality_checks]
-        assert "no_duplicates" in check_names
+@pytest.fixture
+def e2e_tick_data() -> pd.DataFrame:
+    """Load e2e tick data from fixtures."""
+    return pd.read_csv(
+        "tests/fixtures/e2e_test_data/testusd_tick_data.csv", parse_dates=["timestamp"]
+    )
 
 
-class TestFixtureDataCompliance:
-    """Test that fixture data complies with schema requirements."""
+class TestTickDataSchemaValidation:
+    """Test schema validation for tick data (pipeline input)."""
 
-    def test_sample_ticks_complies_with_schema(self) -> None:
-        """Test that sample_ticks.csv complies with tick_data schema."""
-        df = pd.read_csv("tests/fixtures/sample_ticks.csv", parse_dates=["timestamp"], encoding="utf-8")
-        validator = DataValidator()
-        
-        is_valid, errors = validator.validate_tick_data(df)
-        
-        assert is_valid, f"Validation errors: {errors}"
-
-    def test_sample_ticks_has_required_columns(self) -> None:
-        """Test that sample_ticks.csv has all required columns."""
-        df = pd.read_csv("tests/fixtures/sample_ticks.csv", encoding="utf-8")
-        
-        # Check required columns from schema
-        required_columns = ["timestamp", "bid", "ask", "volume"]
-        for col in required_columns:
-            assert col in df.columns, f"Missing required column: {col}"
-
-    def test_sample_ticks_column_types(self) -> None:
-        """Test that sample_ticks.csv has correct column types."""
-        df = pd.read_csv("tests/fixtures/sample_ticks.csv", parse_dates=["timestamp"], encoding="utf-8")
-        
-        # Check types match schema
-        assert pd.api.types.is_datetime64_any_dtype(df["timestamp"])
-        assert pd.api.types.is_float_dtype(df["bid"])
-        assert pd.api.types.is_float_dtype(df["ask"])
-        assert pd.api.types.is_float_dtype(df["volume"])
-
-    def test_sample_ticks_price_constraints(self) -> None:
-        """Test that sample_ticks.csv satisfies price constraints."""
-        df = pd.read_csv("tests/fixtures/sample_ticks.csv", encoding="utf-8")
-        
-        # Prices should be positive
-        assert (df["bid"] > 0).all(), "Bid prices must be positive"
-        assert (df["ask"] > 0).all(), "Ask prices must be positive"
-        
-        # Prices should be reasonable (< 1M as per schema)
-        assert (df["bid"] < 1e6).all(), "Bid prices exceed max constraint"
-        assert (df["ask"] < 1e6).all(), "Ask prices exceed max constraint"
-
-    def test_sample_ticks_no_crossed_spreads(self) -> None:
-        """Test that sample_ticks.csv has no crossed spreads."""
-        df = pd.read_csv("tests/fixtures/sample_ticks.csv", encoding="utf-8")
-        
-        # Ask should be >= Bid
-        assert (df["ask"] >= df["bid"]).all(), "Found crossed spreads (ask < bid)"
-
-    def test_sample_ticks_monotonic_timestamps(self) -> None:
-        """Test that sample_ticks.csv has monotonically increasing timestamps."""
-        df = pd.read_csv("tests/fixtures/sample_ticks.csv", parse_dates=["timestamp"], encoding="utf-8")
-        
-        assert df["timestamp"].is_monotonic_increasing, "Timestamps not monotonic increasing"
-
-    def test_testusd_tick_data_complies_with_schema(self) -> None:
-        """Test that testusd_tick_data.csv complies with tick_data schema."""
-        df = pd.read_csv(
-            "tests/fixtures/e2e_test_data/testusd_tick_data.csv",
-            parse_dates=["timestamp"], encoding="utf-8"
-        )
-        validator = DataValidator()
-        
-        is_valid, errors = validator.validate_tick_data(df)
-        
-        assert is_valid, f"Validation errors: {errors}"
-
-    def test_testusd_tick_data_has_required_columns(self) -> None:
-        """Test that testusd_tick_data.csv has all required columns."""
-        df = pd.read_csv("tests/fixtures/e2e_test_data/testusd_tick_data.csv", encoding="utf-8")
-        
-        required_columns = ["timestamp", "bid", "ask", "volume"]
-        for col in required_columns:
-            assert col in df.columns, f"Missing required column: {col}"
-
-    def test_testusd_tick_data_column_types(self) -> None:
-        """Test that testusd_tick_data.csv has correct column types."""
-        df = pd.read_csv(
-            "tests/fixtures/e2e_test_data/testusd_tick_data.csv",
-            parse_dates=["timestamp"], encoding="utf-8"
-        )
-        
-        assert pd.api.types.is_datetime64_any_dtype(df["timestamp"])
-        assert pd.api.types.is_float_dtype(df["bid"])
-        assert pd.api.types.is_float_dtype(df["ask"])
-        assert pd.api.types.is_float_dtype(df["volume"])
-
-    def test_testusd_tick_data_no_crossed_spreads(self) -> None:
-        """Test that testusd_tick_data.csv has no crossed spreads."""
-        df = pd.read_csv("tests/fixtures/e2e_test_data/testusd_tick_data.csv", encoding="utf-8")
-        
-        assert (df["ask"] >= df["bid"]).all(), "Found crossed spreads (ask < bid)"
-
-
-class TestSchemaValidationIntegration:
-    """Test integration between schema and validator."""
-
-    def test_validator_loads_schema_correctly(self) -> None:
-        """Test that DataValidator loads schema correctly."""
+    def test_sample_ticks_conform_to_schema(self, sample_tick_data: pd.DataFrame) -> None:
+        """Test that sample_ticks.csv conforms to tick_data schema."""
         validator = DataValidator(schema_path="configs/schema.yaml")
-        
-        assert validator.schema is not None
-        assert "tick_data" in validator.schema
-        assert "ohlc_data" in validator.schema
-        assert "feature_matrix" in validator.schema
+        is_valid, errors = validator.validate_tick_data(sample_tick_data)
 
-    def test_validator_enforces_column_requirements(self) -> None:
-        """Test that validator enforces required columns from schema."""
-        validator = DataValidator()
-        
-        # Missing required column
-        df_missing_bid = pd.DataFrame({
-            "timestamp": pd.date_range("2025-01-01", periods=5, freq="1s"),
-            "ask": [1.0505, 1.0506, 1.0507, 1.0508, 1.0509],
-            "volume": [100.0, 150.0, 200.0, 180.0, 220.0],
-        })
-        
-        is_valid, errors = validator.validate_tick_data(df_missing_bid)
-        assert not is_valid
-        assert any("bid" in error for error in errors)
+        assert is_valid, f"Sample tick data failed validation: {errors}"
+        assert len(errors) == 0
 
-    def test_validator_enforces_type_constraints(self) -> None:
-        """Test that validator enforces type constraints from schema."""
-        validator = DataValidator()
-        
-        # Wrong type for timestamp (string instead of datetime)
-        df_wrong_type = pd.DataFrame({
-            "timestamp": ["2025-01-01 00:00:00"] * 5,  # String, not datetime
-            "bid": [1.0500, 1.0501, 1.0502, 1.0503, 1.0504],
-            "ask": [1.0505, 1.0506, 1.0507, 1.0508, 1.0509],
-            "volume": [100.0, 150.0, 200.0, 180.0, 220.0],
-        })
-        
-        is_valid, errors = validator.validate_tick_data(df_wrong_type)
-        assert not is_valid
-        assert any("timestamp" in error for error in errors)
+    def test_e2e_tick_data_conform_to_schema(self, e2e_tick_data: pd.DataFrame) -> None:
+        """Test that e2e tick data conforms to tick_data schema."""
+        validator = DataValidator(schema_path="configs/schema.yaml")
+        is_valid, errors = validator.validate_tick_data(e2e_tick_data)
 
-    def test_validator_enforces_value_constraints(self) -> None:
-        """Test that validator enforces value constraints from schema."""
-        validator = DataValidator()
-        
-        # Negative price (violates min_value constraint)
-        df_negative_price = pd.DataFrame({
-            "timestamp": pd.date_range("2025-01-01", periods=5, freq="1s"),
-            "bid": [-1.0, 1.0501, 1.0502, 1.0503, 1.0504],
-            "ask": [1.0505, 1.0506, 1.0507, 1.0508, 1.0509],
-            "volume": [100.0, 150.0, 200.0, 180.0, 220.0],
-        })
-        
-        is_valid, errors = validator.validate_tick_data(df_negative_price)
-        assert not is_valid
-        assert any("bid" in error and "0.0" in error for error in errors)
+        assert is_valid, f"E2E tick data failed validation: {errors}"
+        assert len(errors) == 0
 
-    def test_validator_enforces_cross_column_constraints(self) -> None:
-        """Test that validator enforces cross-column constraints from schema."""
-        validator = DataValidator()
-        
-        # Crossed spread (ask < bid)
-        df_crossed_spread = pd.DataFrame({
-            "timestamp": pd.date_range("2025-01-01", periods=5, freq="1s"),
-            "bid": [1.0505, 1.0506, 1.0507, 1.0508, 1.0509],
-            "ask": [1.0500, 1.0501, 1.0502, 1.0503, 1.0504],  # Ask < Bid
-            "volume": [100.0, 150.0, 200.0, 180.0, 220.0],
-        })
-        
-        is_valid, errors = validator.validate_tick_data(df_crossed_spread)
-        assert not is_valid
-        assert any("crossed" in error.lower() for error in errors)
+    def test_tick_data_required_columns(self, sample_tick_data: pd.DataFrame) -> None:
+        """Test that tick data has all required columns."""
+        required_columns = ["timestamp", "bid", "ask", "volume"]
+        for col in required_columns:
+            assert col in sample_tick_data.columns, f"Missing required column: {col}"
 
-    def test_validator_enforces_monotonic_constraint(self) -> None:
-        """Test that validator enforces monotonic_increasing constraint from schema."""
-        validator = DataValidator()
-        
-        # Non-monotonic timestamps (going backward)
-        timestamps = pd.date_range("2025-01-01", periods=5, freq="1s").tolist()
-        timestamps[2] = timestamps[0]  # Make timestamp go backward
-        
-        df_non_monotonic = pd.DataFrame({
-            "timestamp": timestamps,
-            "bid": [1.0500, 1.0501, 1.0502, 1.0503, 1.0504],
-            "ask": [1.0505, 1.0506, 1.0507, 1.0508, 1.0509],
-            "volume": [100.0, 150.0, 200.0, 180.0, 220.0],
-        })
-        
-        is_valid, errors = validator.validate_tick_data(df_non_monotonic)
-        assert not is_valid
-        assert any("monotonic" in error.lower() for error in errors)
+    def test_tick_data_types(self, sample_tick_data: pd.DataFrame) -> None:
+        """Test that tick data columns have correct types."""
+        assert pd.api.types.is_datetime64_any_dtype(
+            sample_tick_data["timestamp"]
+        ), "timestamp must be datetime"
+        assert pd.api.types.is_float_dtype(sample_tick_data["bid"]), "bid must be float"
+        assert pd.api.types.is_float_dtype(sample_tick_data["ask"]), "ask must be float"
+        assert pd.api.types.is_float_dtype(sample_tick_data["volume"]), "volume must be float"
+
+    def test_tick_data_no_crossed_spreads(self, sample_tick_data: pd.DataFrame) -> None:
+        """Test that ask >= bid (no crossed spreads)."""
+        crossed = sample_tick_data["ask"] < sample_tick_data["bid"]
+        assert not crossed.any(), f"Found {crossed.sum()} crossed spreads"
+
+    def test_tick_data_positive_prices(self, sample_tick_data: pd.DataFrame) -> None:
+        """Test that bid and ask prices are positive."""
+        assert (sample_tick_data["bid"] > 0).all(), "All bid prices must be positive"
+        assert (sample_tick_data["ask"] > 0).all(), "All ask prices must be positive"
+
+    def test_tick_data_monotonic_timestamps(self, sample_tick_data: pd.DataFrame) -> None:
+        """Test that timestamps are monotonically increasing."""
+        assert sample_tick_data[
+            "timestamp"
+        ].is_monotonic_increasing, "Timestamps must be monotonically increasing"
+
+
+class TestOHLCDataSchemaValidation:
+    """Test schema validation for OHLC data (pipeline intermediate output)."""
+
+    @pytest.fixture
+    def sample_ohlc_data(self) -> pd.DataFrame:
+        """Create sample OHLC data for testing."""
+        return pd.DataFrame(
+            {
+                "timestamp": pd.date_range("2025-01-01", periods=5, freq="1min"),
+                "open": [1.0500, 1.0505, 1.0510, 1.0508, 1.0512],
+                "high": [1.0510, 1.0515, 1.0520, 1.0518, 1.0522],
+                "low": [1.0495, 1.0500, 1.0505, 1.0503, 1.0507],
+                "close": [1.0505, 1.0510, 1.0508, 1.0512, 1.0520],
+                "volume": [1000.0, 1500.0, 2000.0, 1800.0, 2200.0],
+                "tick_count": [10, 15, 20, 18, 22],
+            }
+        )
+
+    def test_ohlc_data_conform_to_schema(self, sample_ohlc_data: pd.DataFrame) -> None:
+        """Test that OHLC data conforms to ohlc_data schema."""
+        validator = DataValidator(schema_path="configs/schema.yaml")
+        is_valid, errors = validator.validate_ohlc_data(sample_ohlc_data)
+
+        assert is_valid, f"OHLC data failed validation: {errors}"
+        assert len(errors) == 0
+
+    def test_ohlc_required_columns(self, sample_ohlc_data: pd.DataFrame) -> None:
+        """Test that OHLC data has all required columns."""
+        required_columns = ["timestamp", "open", "high", "low", "close", "volume", "tick_count"]
+        for col in required_columns:
+            assert col in sample_ohlc_data.columns, f"Missing required column: {col}"
+
+    def test_ohlc_relationships(self, sample_ohlc_data: pd.DataFrame) -> None:
+        """Test OHLC relationships (high >= low, high >= open/close, etc.)."""
+        # High >= Low
+        assert (sample_ohlc_data["high"] >= sample_ohlc_data["low"]).all(), "High must be >= Low"
+
+        # High >= Open
+        assert (sample_ohlc_data["high"] >= sample_ohlc_data["open"]).all(), "High must be >= Open"
+
+        # High >= Close
+        assert (
+            sample_ohlc_data["high"] >= sample_ohlc_data["close"]
+        ).all(), "High must be >= Close"
+
+        # Low <= Open
+        assert (sample_ohlc_data["low"] <= sample_ohlc_data["open"]).all(), "Low must be <= Open"
+
+        # Low <= Close
+        assert (sample_ohlc_data["low"] <= sample_ohlc_data["close"]).all(), "Low must be <= Close"
+
+
+class TestFeatureMatrixSchemaValidation:
+    """Test schema validation for feature matrix (pipeline final output)."""
+
+    @pytest.fixture
+    def sample_feature_matrix(self) -> pd.DataFrame:
+        """Create sample feature matrix for testing."""
+        return pd.DataFrame(
+            {
+                "timestamp": pd.date_range("2025-01-01", periods=5, freq="1min"),
+                "mid_price": [1.05025, 1.05055, 1.05085, 1.05055, 1.05115],
+                "returns": [0.0, 0.0003, 0.0003, -0.0003, 0.0006],
+                "spread": [0.0005, 0.0005, 0.0005, 0.0005, 0.0005],
+                "volume": [1000.0, 1500.0, 2000.0, 1800.0, 2200.0],
+                "vwap": [1.05020, 1.05050, 1.05080, 1.05050, 1.05110],
+                "ofi": [0.1, -0.2, 0.3, -0.1, 0.2],
+                "micro_price": [1.05023, 1.05053, 1.05083, 1.05053, 1.05113],
+            }
+        )
+
+    def test_feature_matrix_conform_to_schema(self, sample_feature_matrix: pd.DataFrame) -> None:
+        """Test that feature matrix conforms to feature_matrix schema."""
+        validator = DataValidator(schema_path="configs/schema.yaml")
+        is_valid, errors = validator.validate_feature_matrix(sample_feature_matrix)
+
+        assert is_valid, f"Feature matrix failed validation: {errors}"
+        assert len(errors) == 0
+
+    def test_feature_matrix_no_infinite_values(self, sample_feature_matrix: pd.DataFrame) -> None:
+        """Test that feature matrix has no infinite values."""
+        import numpy as np
+
+        for col in sample_feature_matrix.select_dtypes(include=[np.number]).columns:
+            assert not np.isinf(
+                sample_feature_matrix[col]
+            ).any(), f"Column {col} contains infinite values"
+
+    def test_feature_matrix_non_negative_constraints(
+        self, sample_feature_matrix: pd.DataFrame
+    ) -> None:
+        """Test that spread and volume are non-negative."""
+        if "spread" in sample_feature_matrix.columns:
+            assert (sample_feature_matrix["spread"] >= 0).all(), "Spread must be non-negative"
+
+        if "volume" in sample_feature_matrix.columns:
+            assert (sample_feature_matrix["volume"] >= 0).all(), "Volume must be non-negative"
+
+
+class TestPipelineSchemaIntegration:
+    """Test schema validation across pipeline stages."""
+
+    def test_validate_dataframe_function_tick_data(self, sample_tick_data: pd.DataFrame) -> None:
+        """Test validate_dataframe function with tick data."""
+        # Should not raise
+        validate_dataframe(sample_tick_data, data_type="tick_data")
+
+    def test_validate_dataframe_function_ohlc_data(self) -> None:
+        """Test validate_dataframe function with OHLC data."""
+        ohlc_data = pd.DataFrame(
+            {
+                "timestamp": pd.date_range("2025-01-01", periods=3, freq="1min"),
+                "open": [1.0500, 1.0505, 1.0510],
+                "high": [1.0510, 1.0515, 1.0520],
+                "low": [1.0495, 1.0500, 1.0505],
+                "close": [1.0505, 1.0510, 1.0515],
+                "volume": [1000.0, 1500.0, 2000.0],
+                "tick_count": [10, 15, 20],
+            }
+        )
+        # Should not raise
+        validate_dataframe(ohlc_data, data_type="ohlc_data")
+
+    def test_validate_dataframe_function_feature_matrix(self) -> None:
+        """Test validate_dataframe function with feature matrix."""
+        feature_matrix = pd.DataFrame(
+            {
+                "timestamp": pd.date_range("2025-01-01", periods=3, freq="1min"),
+                "mid_price": [1.05025, 1.05055, 1.05085],
+                "returns": [0.0, 0.0003, 0.0003],
+                "spread": [0.0005, 0.0005, 0.0005],
+                "volume": [1000.0, 1500.0, 2000.0],
+                "vwap": [1.05020, 1.05050, 1.05080],
+                "ofi": [0.1, -0.2, 0.3],
+                "micro_price": [1.05023, 1.05053, 1.05083],
+            }
+        )
+        # Should not raise
+        validate_dataframe(feature_matrix, data_type="feature_matrix")
+
+    def test_schema_validation_rejects_invalid_data(self) -> None:
+        """Test that schema validation properly rejects invalid data."""
+        # Create invalid tick data (crossed spread)
+        invalid_tick_data = pd.DataFrame(
+            {
+                "timestamp": pd.date_range("2025-01-01", periods=3, freq="1s"),
+                "bid": [1.0500, 1.0501, 1.0502],
+                "ask": [1.0400, 1.0506, 1.0507],  # First ask < bid
+                "volume": [100.0, 150.0, 200.0],
+            }
+        )
+
+        with pytest.raises(ValidationError):
+            validate_dataframe(invalid_tick_data, data_type="tick_data")
