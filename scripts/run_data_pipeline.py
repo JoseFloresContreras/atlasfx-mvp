@@ -622,7 +622,16 @@ def run_pipeline(config_file="configs/data_pipeline.yaml"):
             # Run the step
             try:
                 if step_name == "merge":
-                    run_pipeline_step(step_name, run_merge, generate_merge_config(pipeline_config))
+                    print("\n🔥 DEBUG: about to run merge step")
+                    print(f"→ Current working dir: {os.getcwd()}")
+                    print(f"→ File __file__: {__file__}")
+                    print(f"→ pipeline_config keys: {list(pipeline_config.keys())}")
+                
+                    merge_config = generate_merge_config(pipeline_config)
+                    print(f"→ merge_config: {merge_config}")
+                
+                    run_pipeline_step(step_name, run_merge, merge_config)
+
                 elif step_name == "clean_ticks":
                     run_pipeline_step(
                         step_name,
