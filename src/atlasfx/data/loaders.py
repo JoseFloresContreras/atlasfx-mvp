@@ -198,9 +198,6 @@ def process_single_symbol(
         raise e
 
 
-from pathlib import Path
-import os
-
 def run_merge(config):
     """
     Run the merge process with the specified configuration.
@@ -214,7 +211,19 @@ def run_merge(config):
         os.chdir(REPO_ROOT)
 
         print("🔥 run_merge() has started")
-        
+
+        # 🧩 DEBUG BLOCK
+        import os
+        from pathlib import Path
+        print("\n🔍 DEBUG INSIDE run_merge")
+        print(f"📂 Current working directory: {os.getcwd()}")
+        print(f"📁 Output directory (raw): {config.get('output_directory')}")
+        print(f"🔧 Full config passed in:\n{config}")
+        print(f"🔎 Absolute folder paths for pairs:")
+        for p in config.get('pairs', []):
+            f = Path(p['folder_path']).resolve()
+            print(f"   - {p['symbol']}: {f} (exists={f.exists()})")
+
         log.info("🚀 Starting CSV Merge Process")
         log.info("=" * 50)
 
