@@ -545,6 +545,10 @@ def run_pipeline_step(step_name: str, step_function, config):
         step_function: Function to run the step
         config (Dict[str, Any]): Configuration dictionary for the step
     """
+    print(f"🧩 ENTERING run_pipeline_step → step_name={step_name}")
+    print(f"📂 Working directory: {os.getcwd()}")
+    print(f"🗂️ Config passed: {config}")
+
     try:
         log.info(f"\n{'='*60}", also_print=True)
         log.info(f"🚀 Starting {step_name} step...", also_print=True)
