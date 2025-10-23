@@ -18,6 +18,8 @@ import pandas as pd
 
 from atlasfx.data.validators import DataValidator
 
+import pytest
+@pytest.mark.integration
 
 def test_pipeline_e2e():
     """
