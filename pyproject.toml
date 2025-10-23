@@ -3,11 +3,11 @@ name = "atlasfx-mvp"
 version = "0.1.0"
 description = "Professional Algorithmic Trading System with Deep Learning (VAE + TFT + SAC)"
 authors = [
-    {name = "Jose Flores Contreras", email = "jose@example.com"}
+    { name = "Jose Flores Contreras", email = "jose@example.com" }
 ]
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = { text = "MIT" }
 
 dependencies = [
     "pandas>=1.5.0",
@@ -38,7 +38,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = ["atlasfx"]
-package-dir = {"" = "src"}
+package-dir = { "" = "src" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -54,8 +54,6 @@ addopts = [
 markers = [
     "integration: marks tests as integration tests (slow, full-pipeline)"
 ]
-
-
 
 [tool.mypy]
 python_version = "3.12"
@@ -80,7 +78,6 @@ target-version = ["py310"]
 include = "\\.pyi?$"
 extend-exclude = '''
 /(
-  # directories
   \.eggs
   | \.git
   | \.hg
@@ -103,18 +100,18 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = [
-    "E",  # pycodestyle errors
-    "W",  # pycodestyle warnings
-    "F",  # pyflakes
-    "I",  # isort
-    "B",  # flake8-bugbear
-    "C4", # flake8-comprehensions
-    "UP", # pyupgrade
+    "E",
+    "W",
+    "F",
+    "I",
+    "B",
+    "C4",
+    "UP",
 ]
 ignore = [
-    "E501",  # line too long, handled by black
-    "B008",  # do not perform function calls in argument defaults
-    "C901",  # too complex
+    "E501",
+    "B008",
+    "C901",
 ]
 
 [tool.ruff.lint.per-file-ignores]
