@@ -692,13 +692,20 @@ def run_pipeline(config_file="configs/data_pipeline.yaml"):
 
 def main():
     """Main function to run the pipeline."""
-    import sys
+    import argparse
 
-    # Get config file from command line argument, default to configs/data_pipeline.yaml
-    config_file = sys.argv[1] if len(sys.argv) > 1 else "configs/data_pipeline.yaml"
+    parser = argparse.ArgumentParser(description="Run the AtlasFX data processing pipeline")
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="configs/data_pipeline.yaml",
+        help="Path to the pipeline configuration YAML file.",
+    )
+    args = parser.parse_args()
 
-    run_pipeline(config_file)
+    run_pipeline(args.config)
     log.info("\n📋 Pipeline execution completed!")
+
 
 
 if __name__ == "__main__":
