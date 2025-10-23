@@ -744,7 +744,7 @@ def main():
     import argparse
     import sys
 
-    # ✅ Imprime los argumentos reales que llegan desde PowerShell
+    # ✅ Muestra los argumentos reales que llegan desde PowerShell o pytest
     print(f"[DEBUG sys.argv] {sys.argv}")
 
     parser = argparse.ArgumentParser(description="Run the AtlasFX data processing pipeline")
@@ -756,18 +756,21 @@ def main():
 
     args, unknown = parser.parse_known_args()
 
-    # ✅ Nueva lógica: detecta si PowerShell rompió el argumento
-    if args.config in (None, "--config"):
-        if len(sys.argv) > 2 and sys.argv[-1].endswith(".yaml"):
-            args.config = sys.argv[-1]
-            print(f"[DEBUG FIX] PowerShell mode detected, using last arg: {args.config}")
-        else:
-            args.config = "configs/data_pipeline.yaml"
-            print(f"[DEBUG DEFAULT] Using default config: {args.config}")
+    # ✅ Detección robusta del archivo de configuración (soporta ambos estilos)
+    if args.config and args.config.endswith(".yaml"):
+        config_file = args.config
+        print(f"[DEBUG main] Using provided config file via --config: {config_file}")
+    elif len(sys.argv) > 1 and sys.argv[1].endswith(".yaml"):
+        config_file = sys.argv[1]
+        print(f"[DEBUG main] Using provided config file via positional arg: {config_file}")
+    else:
+        config_file = "configs/data_pipeline.yaml"
+        print(f"[DEBUG main] No config provided, using default: {config_file}")
 
-    print(f"[DEBUG main] args.config = {args.config}")
+    # ✅ Ejecuta el pipeline una sola vez con el archivo detectado
+    run_pipeline(config_file)
 
-    run_pipeline(args.config)
+    # ✅ Log final
     log.info("\n📋 Pipeline execution completed!")
 
 
