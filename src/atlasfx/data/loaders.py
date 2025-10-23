@@ -1,3 +1,5 @@
+print("✅ loaders.py loaded successfully")
+
 import os
 from typing import Any
 
@@ -211,6 +213,8 @@ def run_merge(config):
         REPO_ROOT = Path(__file__).resolve().parents[3]  # → sube desde src/atlasfx/data hasta atlasfx-mvp
         os.chdir(REPO_ROOT)
 
+        print("🔥 run_merge() has started")
+        
         log.info("🚀 Starting CSV Merge Process")
         log.info("=" * 50)
 
