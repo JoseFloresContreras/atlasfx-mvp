@@ -175,6 +175,19 @@ def run_merge(config):
         # Extract configuration values
         output_directory = config["output_directory"]
 
+        from pathlib import Path
+        import os
+        
+        # Ensure all paths are absolute (relative to repo root)
+        REPO_ROOT = Path(__file__).resolve().parents[3]  # → sube desde src/atlasfx/data hasta atlasfx-mvp
+        os.chdir(REPO_ROOT)
+        
+        # Normalize output_directory to absolute path
+        output_directory = Path(output_directory)
+        if not output_directory.is_absolute():
+            output_directory = REPO_ROOT / output_directory
+
+
         # Get pairs and instruments configurations
         pairs_config = config.get("pairs", [])
         instruments_config = config.get("instruments", [])
@@ -190,7 +203,9 @@ def run_merge(config):
             log.info(f"\n💱 Processing {len(pairs_config)} pairs...")
             for symbol_config in pairs_config:
                 symbol = symbol_config["symbol"]
-                folder_path = symbol_config["folder_path"]
+                folder_path = Path(symbol_config["folder_path"])
+                if not folder_path.is_absolute():
+                    folder_path = REPO_ROOT / folder_path
 
                 output_path = process_single_symbol(
                     symbol, folder_path, output_directory, suffix="-pair"
@@ -203,7 +218,9 @@ def run_merge(config):
             log.info(f"\n📊 Processing {len(instruments_config)} instruments...")
             for symbol_config in instruments_config:
                 symbol = symbol_config["symbol"]
-                folder_path = symbol_config["folder_path"]
+                folder_path = Path(symbol_config["folder_path"])
+                if not folder_path.is_absolute():
+                    folder_path = REPO_ROOT / folder_path
 
                 output_path = process_single_symbol(
                     symbol, folder_path, output_directory, suffix="-instrument"
