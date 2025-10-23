@@ -52,6 +52,12 @@ addopts = [
     "--cov-report=html",
 ]
 
+# Custom test markers
+markers = [
+    "integration: marks tests as integration tests (slow, full-pipeline)"
+]
+
+
 [tool.mypy]
 python_version = "3.10"
 warn_return_any = true
