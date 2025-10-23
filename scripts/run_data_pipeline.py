@@ -22,6 +22,11 @@ from atlasfx.data.winsorization import run_winsorize
 from atlasfx.evaluation.visualizers import run_visualize
 from atlasfx.utils.logging import log
 
+import os, sys
+# 👇 Asegura que el script se ejecute desde la raíz del proyecto
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 
 def load_pipeline_config(config_file="configs/data_pipeline.yaml"):
     """
