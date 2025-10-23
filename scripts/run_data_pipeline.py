@@ -699,23 +699,31 @@ def run_pipeline(config_file="configs/data_pipeline.yaml"):
 def main():
     """Main function to run the pipeline."""
     import argparse
+    import sys
+
+    # ✅ Imprime los argumentos reales que llegan desde PowerShell
+    print(f"[DEBUG sys.argv] {sys.argv}")
 
     parser = argparse.ArgumentParser(description="Run the AtlasFX data processing pipeline")
     parser.add_argument(
         "--config",
         type=str,
-        default="configs/data_pipeline.yaml",
         help="Path to the pipeline configuration YAML file.",
     )
-    args = parser.parse_args()
 
-    # 🔍 Debug temporal
-    print(f"[DEBUG] sys.argv: {__import__('sys').argv}")
-    print(f"[DEBUG] args.config: {args.config}")
+    args, unknown = parser.parse_known_args()
+
+    # ✅ Nueva lógica: detecta si PowerShell rompió el argumento
+    if args.config in (None, "--config"):
+        if len(sys.argv) > 2 and sys.argv[-1].endswith(".yaml"):
+            args.config = sys.argv[-1]
+            print(f"[DEBUG FIX] PowerShell mode detected, using last arg: {args.config}")
+        else:
+            args.config = "configs/data_pipeline.yaml"
+            print(f"[DEBUG DEFAULT] Using default config: {args.config}")
+
     print(f"[DEBUG main] args.config = {args.config}")
 
-
-    
     run_pipeline(args.config)
     log.info("\n📋 Pipeline execution completed!")
 
