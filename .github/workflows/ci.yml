@@ -22,6 +22,7 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
+        cache: "pip"  # ✅ Cache pip to speed up repeated runs
     
     - name: Install dependencies
       run: |
@@ -48,6 +49,7 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: "3.12"
+        cache: "pip"
     
     - name: Install dependencies
       run: |
@@ -75,6 +77,7 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
+        cache: "pip"
 
     - name: Install dependencies
       run: |
@@ -94,6 +97,9 @@ jobs:
         fi
     
     - name: Run tests with coverage
+      env:
+        TZ: UTC                      # ✅ ensures deterministic timestamps
+        PYTHONIOENCODING: utf-8      # ✅ avoids encoding issues in logs
       run: |
         pytest tests/ -v --cov=src/atlasfx --cov-report=xml --cov-report=term-missing --cov-fail-under=10
     
@@ -116,6 +122,7 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: "3.12"
+        cache: "pip"
     
     - name: Install dependencies
       run: |
@@ -123,6 +130,9 @@ jobs:
         pip install -e ".[dev]"
     
     - name: Validate schema and test fixtures
+      env:
+        TZ: UTC                      # ✅ unify timezone
+        PYTHONIOENCODING: utf-8      # ✅ unify encoding
       run: |
         python -m atlasfx.data.validators --sample tests/fixtures/sample_tick_data.csv --type tick_data
 
@@ -138,6 +148,7 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: "3.12"
+        cache: "pip"
 
     - name: Install dependencies
       run: |
@@ -158,10 +169,16 @@ jobs:
         fi
 
     - name: Run e2e pipeline test
+      env:
+        TZ: UTC                      # ✅ deterministic timestamps for pipeline
+        PYTHONIOENCODING: utf-8      # ✅ consistent encoding across OS
       run: |
         python scripts/run_data_pipeline.py tests/fixtures/e2e_pipeline_config.yaml
     
     - name: Verify output file
+      env:
+        TZ: UTC
+        PYTHONIOENCODING: utf-8
       run: |
         OUTPUT_FILE="tests/fixtures/e2e_test_output/testusd-pair_ticks.parquet"
         if [ ! -f "$OUTPUT_FILE" ]; then
@@ -179,4 +196,3 @@ jobs:
           exit 1
         fi
         echo "✅ Success: Output file size: $FILE_SIZE bytes"
-
