@@ -136,12 +136,29 @@ def process_single_symbol(
         log.info(f"\n🔄 Processing symbol: {symbol}")
         log.info(f"📁 Loading CSV files from: {folder_path}")
 
-        # ✅ Normalize folder_path to absolute (relative to repo root)
+        # ======================================================
+        # 🧭 DEBUGGING SECTION - path resolution diagnostics
+        # ======================================================
         from pathlib import Path
+        import os
+
+        print("\n=== DEBUG SYMBOL INFO ===")
+        print(f"Symbol: {symbol}")
+        print(f"Original folder_path arg: {folder_path} (type={type(folder_path)})")
+        print(f"Current working directory (os.getcwd): {os.getcwd()}")
+
         REPO_ROOT = Path(__file__).resolve().parents[3]
+        print(f"Repo root (calculated): {REPO_ROOT}")
+
         folder_path = Path(folder_path)
         if not folder_path.is_absolute():
             folder_path = REPO_ROOT / folder_path
+
+        print(f"Resolved absolute folder_path: {folder_path}")
+        print(f"Does folder exist? {folder_path.exists()}")
+        print("========================\n")
+        # ======================================================
+
         log.info(f"📂 Normalized folder path: {folder_path}")
 
         # Load and merge CSV files
