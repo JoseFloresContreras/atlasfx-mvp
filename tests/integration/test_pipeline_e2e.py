@@ -8,12 +8,15 @@ This test validates the complete data pipeline execution, ensuring:
 - Generated parquet files are valid and non-empty
 """
 
+import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 import pandas as pd
+
+from atlasfx.data.validators import DataValidator
 
 
 def test_pipeline_e2e():
@@ -44,6 +47,7 @@ def test_pipeline_e2e():
         [sys.executable, str(pipeline_script), "--config", str(config_file)],
         capture_output=True,
         text=True,
+        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
     )
 
     # Verify first run succeeded
@@ -70,6 +74,7 @@ def test_pipeline_e2e():
         [sys.executable, str(pipeline_script), "--config", str(config_file)],
         capture_output=True,
         text=True,
+        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
     )
 
     # Verify second run succeeded
@@ -106,3 +111,61 @@ def test_pipeline_e2e():
         # Verify the dataframe is not empty
         assert not df.empty, f"Parquet file {parquet_file.name} is empty"
         assert len(df) > 0, f"Parquet file {parquet_file.name} has no rows"
+
+    # Step 7: Extended validation - structure, data types, and schema compliance
+    validator = DataValidator(schema_path="configs/schema.yaml")
+
+    for parquet_file in output_dir.glob("*.parquet"):
+        # Load data with pandas
+        df = pd.read_parquet(parquet_file)
+
+        # Verify the DataFrame is not empty
+        assert not df.empty, (
+            f"Parquet file {parquet_file.name} is empty.\n"
+            f"Shape: {df.shape}, Columns: {df.columns.tolist()}"
+        )
+
+        # Check required columns
+        required_columns = ["timestamp", "bid", "ask", "volume"]
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        assert len(missing_columns) == 0, (
+            f"Parquet file {parquet_file.name} is missing required columns: {missing_columns}\n"
+            f"Found columns: {df.columns.tolist()}\n"
+            f"Shape: {df.shape}"
+        )
+
+        # Convert timestamp to datetime if it's not already
+        if not pd.api.types.is_datetime64_any_dtype(df["timestamp"]):
+            df["timestamp"] = pd.to_datetime(df["timestamp"])
+
+        # Verify data types
+        # timestamp should be datetime64 or datetime64[ns, UTC]
+        assert pd.api.types.is_datetime64_any_dtype(df["timestamp"]), (
+            f"Parquet file {parquet_file.name}: 'timestamp' column has incorrect type.\n"
+            f"Expected: datetime64 or datetime64[ns, UTC], Got: {df['timestamp'].dtype}\n"
+            f"Shape: {df.shape}, Columns: {df.columns.tolist()}"
+        )
+
+        # bid, ask, volume should be float
+        for col in ["bid", "ask", "volume"]:
+            assert pd.api.types.is_float_dtype(df[col]), (
+                f"Parquet file {parquet_file.name}: '{col}' column has incorrect type.\n"
+                f"Expected: float, Got: {df[col].dtype}\n"
+                f"Shape: {df.shape}, Columns: {df.columns.tolist()}"
+            )
+
+        # Verify ask >= bid in all records
+        crossed_spreads = df["ask"] < df["bid"]
+        assert not crossed_spreads.any(), (
+            f"Parquet file {parquet_file.name}: Found {crossed_spreads.sum()} records "
+            f"where ask < bid (crossed spreads).\n"
+            f"Shape: {df.shape}, Columns: {df.columns.tolist()}"
+        )
+
+        # Execute validator.validate_tick_data() for schema compliance
+        is_valid, errors = validator.validate_tick_data(df)
+        assert is_valid, (
+            f"Parquet file {parquet_file.name} failed schema validation.\n"
+            f"Shape: {df.shape}, Columns: {df.columns.tolist()}\n"
+            f"Validation errors:\n" + "\n".join(f"  - {error}" for error in errors)
+        )
