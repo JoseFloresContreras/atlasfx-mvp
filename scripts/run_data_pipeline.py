@@ -703,6 +703,11 @@ def main():
     )
     args = parser.parse_args()
 
+    # 🔍 Debug temporal
+    print(f"[DEBUG] sys.argv: {__import__('sys').argv}")
+    print(f"[DEBUG] args.config: {args.config}")
+
+    
     run_pipeline(args.config)
     log.info("\n📋 Pipeline execution completed!")
 
