@@ -1,277 +1,229 @@
-print("✅ loaders.py loaded successfully")
+"""
+AtlasFX Data Loader & Merger (v3.2)
+-----------------------------------
+Handles loading, validation, and merging of raw CSV tick data
+into canonical Parquet datasets.
 
-import osLFfrom typing import AnyLFLFimport pandas as pdLFfrom tqdm import tqdmLFLFfrom atlasfx.utils.logging import logLFLFLFdef load_and_merge_csvs_from_folder(folder_path: str) -> tuple[pd.DataFrame, list[dict[str, Any]]]:LF    """
-    Load and merge all CSV files from a specified folder.
+Key features:
+✅ Robust path resolution via atlasfx.utils.pathing
+✅ Memory-efficient float32 typing
+✅ TQDM progress tracking
+✅ Detailed logging and summary of skipped files
+✅ Safe merge and persistence with Snappy compression
+"""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+from typing import Any
+import pandas as pd
+from tqdm import tqdm
+
+from atlasfx.utils.logging import log
+from atlasfx.utils.pathing import resolve_path, cd_repo_root  # ✅ nuevo
+
+
+# ============================================================
+# UTILITY FUNCTIONS
+# ============================================================
+
+def _resolve_folder_path(folder_path: str | Path) -> Path:
+    """Resolve folder path using pathing helper."""
+    folder = resolve_path(folder_path)  # ✅ reemplaza todo el bloque anterior
+
+    if not folder.exists():
+        msg = f"❌ Folder not found: {folder}"
+        log.critical(msg, also_print=True)
+        raise FileNotFoundError(msg)
+
+    return folder
+
+
+def _convert_numeric_to_float32(df: pd.DataFrame) -> pd.DataFrame:
+    """Convert numeric columns to float32 to reduce memory usage."""
+    numeric_cols = df.select_dtypes(include=["number"]).columns
+    for col in numeric_cols:
+        df[col] = df[col].astype("float32")
+    return df
+
+
+# ============================================================
+# CORE FUNCTIONS
+# ============================================================
+
+def load_and_merge_csvs_from_folder(folder_path: str | Path) -> tuple[pd.DataFrame, list[dict[str, Any]]]:
     """
-    import pathlibLFLFimport importLFimport osLFfromLFimport PathLFLF
+    Load and merge all CSV files from a specified folder.
 
-    print("\n=== DEBUG PATH INFO ===")
-    print(f"Current working directory: {os.getcwd()}")
-    print(f"Original folder_path arg: {folder_path} (type={type(folder_path)})")
+    Args:
+        folder_path (str | Path): Path to the folder containing CSV files.
 
-    # Ensure it's a Path object
-    folder_path = Path(folder_path)
-    if not folder_path.is_absolute():
-        folder_path = Path(__file__).resolve().parents[3] / folder_path
+    Returns:
+        tuple[pd.DataFrame, list[dict[str, Any]]]:
+            - Merged DataFrame of all loaded CSVs.
+            - List of skipped files with reasons.
+    """
+    folder = _resolve_folder_path(folder_path)
 
-    print(f"Resolved absolute folder_path: {folder_path}")
-    print(f"Does folder exist? {folder_path.exists()}")
-    print("========================\n")
-
-    if not folder_path.exists():
-        error_msg = f"Folder '{folder_path}' does not exist"
-        log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
-        raise FileNotFoundError(error_msg)
-
-    # Get all CSV files in the folder
-    csv_files = [f for f in os.listdir(folder_path) if f.endswith(".csv")]
-
+    csv_files = sorted(f for f in os.listdir(folder) if f.endswith(".csv"))
     if not csv_files:
-        log.warning(f"⚠️  No CSV files found in {folder_path}")
+        log.warning(f"⚠️  No CSV files found in {folder}")
         return pd.DataFrame(), []
 
-    log.info(f"📁 Found {len(csv_files)} CSV files in {folder_path}")
+    log.info(f"📁 Found {len(csv_files)} CSV files in {folder}")
 
-    # Initialize variables
-    dataframes = []
-    skipped_files = []
+    dataframes: list[pd.DataFrame] = []
+    skipped_files: list[dict[str, Any]] = []
 
-    # Process each CSV file with progress bar
-    for csv_file in tqdm(csv_files, desc="Processing CSV files", unit="file"):
-        file_path = os.path.join(folder_path, csv_file)
+    for csv_file in tqdm(csv_files, desc="📄 Loading CSV files", unit="file"):
+        file_path = folder / csv_file
 
         try:
-            # Check file size
-            file_size = os.path.getsize(file_path)
-            if file_size == 0:
+            if file_path.stat().st_size == 0:
                 skipped_files.append({"file": csv_file, "reason": "Empty file (0 bytes)"})
                 continue
 
-            # Read CSV file with float32 data types for numeric columns
             df = pd.read_csv(file_path)
-
-            # Convert numeric columns to float32 to reduce memory usage
-            numeric_columns = df.select_dtypes(include=["number"]).columns
-            for col in numeric_columns:
-                df[col] = df[col].astype("float32")
-
-            # Check if dataframe is empty
             if df.empty:
                 skipped_files.append({"file": csv_file, "reason": "Empty dataframe (0 rows)"})
                 continue
 
+            df = _convert_numeric_to_float32(df)
+            df["source_file"] = csv_file
             dataframes.append(df)
 
         except Exception as e:
-            log.critical(f"❌ CRITICAL ERROR: {e}")
-            raise e
+            skipped_files.append({"file": csv_file, "reason": str(e)})
+            log.error(f"❌ Failed to load {csv_file}: {e}", also_print=True)
 
     if not dataframes:
-        log.warning("⚠️  No valid CSV files could be loaded")
+        log.warning("⚠️  No valid CSV files could be loaded.")
         return pd.DataFrame(), skipped_files
 
-    # Merge all dataframes
-    log.info("🔗 Merging dataframes...")
     merged_df = pd.concat(dataframes, ignore_index=True)
+    merged_df.sort_values(by="timestamp", inplace=True)
+    merged_df.reset_index(drop=True, inplace=True)
 
+    log.info(f"✅ Merged {len(dataframes)} files, total rows: {len(merged_df)}")
     return merged_df, skipped_files
 
 
-def print_skipped_files_summary(skipped_files: list[dict[str, Any]]):
-    """
-    Print a summary of skipped files.
-
-    Args:
-        skipped_files (list[Dict]): List of dictionaries containing skipped file info
-    """
+def print_skipped_files_summary(skipped_files: list[dict[str, Any]]) -> None:
+    """Print a grouped summary of skipped files and reasons."""
     if not skipped_files:
         log.info("✅ All files processed successfully!")
         return
 
-    log.warning(f"\n⚠️  Skipped Files Summary ({len(skipped_files)} files):")
+    log.warning(f"\n⚠️ Skipped Files Summary ({len(skipped_files)} files):")
     log.info("=" * 60)
 
-    # Group by reason
-    reasons = {}
-    for file_info in skipped_files:
-        reason = file_info["reason"]
-        if reason not in reasons:
-            reasons[reason] = []
-        reasons[reason].append(file_info["file"])
+    grouped: dict[str, list[str]] = {}
+    for item in skipped_files:
+        grouped.setdefault(item["reason"], []).append(item["file"])
 
-    # Print grouped summary
-    for reason, files in reasons.items():
+    for reason, files in grouped.items():
         log.warning(f"\n📋 {reason}:")
-        for file in files:
-            log.warning(f"   • {file}")
+        for f in files:
+            log.warning(f"   • {f}")
 
     log.info("=" * 60)
 
 
-def process_single_symbol(
-    symbol: str, folder_path: str, output_directory: str, suffix: str = ""
-) -> str:
+# ============================================================
+# SYMBOL-LEVEL PROCESSING
+# ============================================================
+
+def process_single_symbol(symbol: str, folder_path: str | Path, output_directory: str | Path, suffix: str = "") -> str | None:
     """
-    Process a single symbol and save the merged result.
+    Process a single symbol (e.g., EURUSD or GOLD) and save the merged result.
 
     Args:
-        symbol (str): Symbol name
-        folder_path (str): Path to the folder containing CSV files
-        output_directory (str): Directory to save the output file
-        suffix (str): Suffix to add to the output filename (e.g., '-pair', '-instrument')
+        symbol: Asset symbol.
+        folder_path: Folder containing CSV tick data.
+        output_directory: Target directory for output files.
+        suffix: Optional suffix for file naming (e.g., "-pair", "-instrument").
 
     Returns:
-        str: Output file path if successful, None otherwise
+        str | None: Path of the saved Parquet file, or None if failed.
     """
     try:
+        folder = _resolve_folder_path(folder_path)
+        output_dir = resolve_path(output_directory)  # ✅ usa resolve_path
+        output_dir.mkdir(parents=True, exist_ok=True)
+
         log.info(f"\n🔄 Processing symbol: {symbol}")
-        log.info(f"📁 Loading CSV files from: {folder_path}")
+        log.info(f"📂 Folder path: {folder}")
 
-        # ======================================================LF# 🧭 DEBUGGING SECTION - path resolution diagnosticsLF# ======================================================LFLF
-        import pathlibLFLFimport importLFimport osLFfromLFimport PathLFLF
-
-        print("\n=== DEBUG SYMBOL INFO ===")
-        print(f"Symbol: {symbol}")
-        print(f"Original folder_path arg: {folder_path} (type={type(folder_path)})")
-        print(f"Current working directory (os.getcwd): {os.getcwd()}")
-
-        REPO_ROOT = Path(__file__).resolve().parents[3]
-        print(f"Repo root (calculated): {REPO_ROOT}")
-
-        folder_path = Path(folder_path)
-        if not folder_path.is_absolute():
-            folder_path = REPO_ROOT / folder_path
-
-        print(f"Resolved absolute folder_path: {folder_path}")
-        print(f"Does folder exist? {folder_path.exists()}")
-        print("========================\n")
-        # ======================================================
-
-        log.info(f"📂 Normalized folder path: {folder_path}")
-
-        # Load and merge CSV files
-        merged_df, skipped_files = load_and_merge_csvs_from_folder(folder_path)
-
+        merged_df, skipped_files = load_and_merge_csvs_from_folder(folder)
         if merged_df.empty:
-            log.error(f"❌ No data was loaded for {symbol}")
+            log.error(f"❌ No valid data for {symbol}")
             return None
 
-        # Display data summary
-        log.info(f"📊 Merged dataframe shape: {merged_df.shape}")
-        log.info(f"📋 Columns: {list(merged_df.columns)}")
         memory_mb = merged_df.memory_usage(deep=True).sum() / 1024**2
-        log.info(f"💾 Memory usage: {memory_mb:.2f} MB (with float32 optimization)")
+        log.info(f"📊 Shape: {merged_df.shape} | 💾 {memory_mb:.2f} MB")
 
-        # Print skipped files summary for this symbol
         print_skipped_files_summary(skipped_files)
 
-        # Create output directory if it doesn't exist
-        os.makedirs(output_directory, exist_ok=True)
-
-        # Generate output filename with suffix
-        output_filename = f"{symbol}{suffix}_ticks.parquet"
-        output_path = os.path.join(output_directory, output_filename)
-
-        # Save merged data with float32 precision
-        log.info(f"💾 Saving to: {output_path}")
+        output_path = output_dir / f"{symbol}{suffix}_ticks.parquet"
         merged_df.to_parquet(output_path, engine="pyarrow", compression="snappy")
 
-        log.info(f"✅ Successfully saved {len(merged_df)} rows to {output_path}")
-        return output_path
+        log.info(f"✅ Saved {len(merged_df)} rows → {output_path}")
+        return str(output_path)
 
     except Exception as e:
-        log.error(f"❌ Error merging {symbol}: {e}")
-        raise e
+        log.error(f"❌ Error processing symbol {symbol}: {e}", also_print=True)
+        raise
 
 
-def run_merge(config):
+# ============================================================
+# MERGE CONTROLLER
+# ============================================================
+
+def run_merge(config: dict[str, Any]) -> None:
     """
-    Run the merge process with the specified configuration.
+    Run the merge stage according to pipeline configuration.
 
-    Args:
-        config (dict[str, Any]): Configuration dictionary containing pairs, instruments and output directory settings
+    Expected config structure:
+    {
+        "pairs": [{"symbol": "EURUSD", "folder_path": "data/raw/eurusd/"}],
+        "instruments": [{"symbol": "GOLD", "folder_path": "data/raw/gold/"}],
+        "output_directory": "data/processed/"
+    }
     """
-    import pathlibLFLFimport importLFimport osLFfromLFimport PathLFLF
+    cd_repo_root()  # ✅ reemplaza todo el bloque con os.chdir y repo_root
+    log.info("📂 Working directory set to repo root")
 
     try:
-        # --- Ensure relative paths resolve from repo root ---
-        REPO_ROOT = (
-            Path(__file__).resolve().parents[3]
-        )  # → sube desde src/atlasfx/data hasta atlasfx-mvp
-        os.chdir(REPO_ROOT)
+        output_dir = resolve_path(config["output_directory"])  # ✅ resuelve de forma segura
+        output_dir.mkdir(parents=True, exist_ok=True)
 
-        print("🔥 run_merge() has started")
+        pairs = config.get("pairs", [])
+        instruments = config.get("instruments", [])
 
-        # 🧩 DEBUG BLOCK
-        print("\n🔍 DEBUG INSIDE run_merge")
-        print(f"📂 Current working directory: {os.getcwd()}")
-        print(f"📁 Output directory (raw): {config.get('output_directory')}")
-        print(f"🔧 Full config passed in:\n{config}")
-        print(f"🔎 Absolute folder paths for pairs:")
-        for p in config.get("pairs", []):
-            f = Path(p["folder_path"]).resolve()
-            print(f"   - {p['symbol']}: {f} (exists={f.exists()})")
-
-        log.info("🚀 Starting CSV Merge Process")
-        log.info("=" * 50)
-
-        # --- Normalize output directory ---
-        output_directory = Path(config["output_directory"])
-        if not output_directory.is_absolute():
-            output_directory = REPO_ROOT / output_directory
-        output_directory.mkdir(parents=True, exist_ok=True)
-
-        # --- Extract pair/instrument configs ---
-        pairs_config = config.get("pairs", [])
-        instruments_config = config.get("instruments", [])
-
-        log.info(f"📁 Output directory: {output_directory}")
-        log.info(f"🔤 Pairs to process: {len(pairs_config)}")
-        log.info(f"📈 Instruments to process: {len(instruments_config)}")
+        log.info(f"🚀 Starting merge process → output: {output_dir}")
+        log.info(f"💱 Pairs: {len(pairs)} | 📈 Instruments: {len(instruments)}")
 
         total_processed = 0
 
-        # --- Process pairs ---
-        if pairs_config:
-            log.info(f"\n💱 Processing {len(pairs_config)} pairs...")
-            for symbol_config in pairs_config:
-                symbol = symbol_config["symbol"]
-                folder_path = Path(symbol_config["folder_path"])
-                if not folder_path.is_absolute():
-                    folder_path = REPO_ROOT / folder_path
+        # --- Process currency pairs ---
+        for p in pairs:
+            result = process_single_symbol(p["symbol"], p["folder_path"], output_dir, suffix="-pair")
+            if result:
+                total_processed += 1
 
-                output_path = process_single_symbol(
-                    symbol, folder_path, output_directory, suffix="-pair"
-                )
-                if output_path:
-                    total_processed += 1
+        # --- Process instruments (e.g., GOLD, OIL) ---
+        for i in instruments:
+            result = process_single_symbol(i["symbol"], i["folder_path"], output_dir, suffix="-instrument")
+            if result:
+                total_processed += 1
 
-        # --- Process instruments ---
-        if instruments_config:
-            log.info(f"\n📊 Processing {len(instruments_config)} instruments...")
-            for symbol_config in instruments_config:
-                symbol = symbol_config["symbol"]
-                folder_path = Path(symbol_config["folder_path"])
-                if not folder_path.is_absolute():
-                    folder_path = REPO_ROOT / folder_path
-
-                output_path = process_single_symbol(
-                    symbol, folder_path, output_directory, suffix="-instrument"
-                )
-                if output_path:
-                    total_processed += 1
-
-        # --- Summary ---
         log.info("\n🎯 Merge Process Summary:")
         log.info("=" * 50)
-        log.info(f"   💱 Total pairs: {len(pairs_config)}")
-        log.info(f"   📈 Total instruments: {len(instruments_config)}")
-        log.info(f"   ✅ Successfully processed: {total_processed}")
-        log.info(f"   📁 Output directory: {output_directory}")
-        log.info("\n🎉 All symbols processed successfully!")
+        log.info(f"✅ Total processed symbols: {total_processed}")
+        log.info(f"📁 Output directory: {output_dir}")
         log.info("=" * 50)
 
     except Exception as e:
-        error_msg = f"Fatal Error: {e}"
-        log.critical(f"❌ CRITICAL ERROR: {error_msg}", also_print=True)
+        log.critical(f"❌ CRITICAL ERROR in merge stage: {e}", also_print=True)
         raise

@@ -1,80 +1,87 @@
-# Data Schema for AtlasFX
-# Defines the structure and validation rules for Level 1 tick data from Dukascopy
+# =============================================================================
+# AtlasFX Schema Definition (v3.1)
+# =============================================================================
+# This schema defines all structural, logical, and semantic validation rules
+# for the AtlasFX pipeline — covering tick, OHLC, and feature-level data.
+# Each section can be parsed by the DataValidator for automated enforcement.
+# =============================================================================
+
+schema_version: "3.1.0"
+strict_types: true
+timestamp_format: "datetime64[ns, UTC]"
 
 # =============================================================================
-# Level 1 Tick Data Schema (Raw Data)
+# TICK DATA (Level 1 Dukascopy feed)
 # =============================================================================
-
 tick_data:
   description: "Level 1 tick data from Dukascopy with bid/ask/volume"
   source: "Dukascopy Historical Data Feed"
-  
+  schema_type: "raw_ticks"
+
   required_columns:
     timestamp:
       type: datetime64[ns]
       description: "UTC timestamp of the tick"
       nullable: false
       constraints:
-        - monotonic_increasing: true  # Timestamps must be in order
+        - monotonic_increasing: true
         - timezone: "UTC"
-    
+
     bid:
       type: float64
-      description: "Bid price (best offer to sell)"
+      description: "Best bid price"
       nullable: false
       constraints:
-        - min_value: 0.0  # Prices must be positive
-        - max_value: 1e6  # Sanity check (no price > 1M)
-    
+        - min_value: 0.0
+        - max_value: 1e6
+
     ask:
       type: float64
-      description: "Ask price (best offer to buy)"
+      description: "Best ask price"
       nullable: false
       constraints:
-        - min_value: 0.0  # Prices must be positive
-        - max_value: 1e6  # Sanity check
-    
+        - min_value: 0.0
+        - max_value: 1e6
+
     volume:
       type: float64
-      description: "Tick volume (optional, may be 0 or NaN)"
+      description: "Trade volume (optional)"
       nullable: true
       constraints:
-        - min_value: 0.0  # Volume must be non-negative
-  
-  # Cross-column constraints
+        - min_value: 0.0
+
   cross_column_constraints:
     - name: "no_crossed_spreads"
-      description: "Ask must be >= Bid (no crossed spreads)"
+      description: "Ask must be >= Bid"
       rule: "ask >= bid"
-    
+
     - name: "reasonable_spread"
-      description: "Spread should be < 1% of mid price"
+      description: "Spread < 1% of mid-price"
       rule: "(ask - bid) / ((ask + bid) / 2) < 0.01"
-      severity: "warning"  # Not a hard constraint, just a warning
-  
-  # Data quality checks
+      severity: "warning"
+
   quality_checks:
     - name: "no_duplicates"
-      description: "No duplicate timestamps"
+      description: "Timestamps must be unique"
       rule: "timestamp.is_unique"
-    
-    - name: "no_gaps_large"
-      description: "No gaps > 1 hour in data"
+
+    - name: "no_large_gaps"
+      description: "No timestamp gaps > 1h"
       rule: "timestamp.diff().max() < timedelta(hours=1)"
       severity: "warning"
-    
-    - name: "no_outliers_extreme"
-      description: "Prices should not change by > 10% in one tick"
+
+    - name: "no_extreme_outliers"
+      description: "Price jumps < 10% per tick"
       rule: "mid_price.pct_change().abs() < 0.1"
       severity: "warning"
 
 # =============================================================================
-# Aggregated OHLC Data Schema (After Aggregation)
+# AGGREGATED OHLC DATA
 # =============================================================================
-
 ohlc_data:
   description: "Time-aggregated OHLC bars with volume"
-  
+  schema_type: "aggregated"
+
   required_columns:
     timestamp:
       type: datetime64[ns]
@@ -83,235 +90,232 @@ ohlc_data:
       constraints:
         - monotonic_increasing: true
         - timezone: "UTC"
-    
+
     open:
       type: float64
       description: "Opening mid-price"
       nullable: false
       constraints:
         - min_value: 0.0
-    
+
     high:
       type: float64
       description: "Highest mid-price in window"
       nullable: false
       constraints:
         - min_value: 0.0
-    
+
     low:
       type: float64
       description: "Lowest mid-price in window"
       nullable: false
       constraints:
         - min_value: 0.0
-    
+
     close:
       type: float64
       description: "Closing mid-price"
       nullable: false
       constraints:
         - min_value: 0.0
-    
+
     volume:
       type: float64
-      description: "Total volume in window"
+      description: "Total volume traded"
       nullable: true
       constraints:
         - min_value: 0.0
-    
+
     tick_count:
       type: int64
-      description: "Number of ticks in window"
+      description: "Number of ticks in the window"
       nullable: false
       constraints:
         - min_value: 0
-  
+
   cross_column_constraints:
-    - name: "ohlc_order"
-      description: "High >= Open, Close >= Low, High >= Low"
+    - name: "ohlc_ordering"
+      description: "Ensure logical order of OHLC prices"
       rule: "(high >= open) and (high >= close) and (high >= low) and (low <= open) and (low <= close)"
 
 # =============================================================================
-# Feature Matrix Schema (After Featurization)
+# FEATURE MATRIX (Featurization stage)
 # =============================================================================
-
 feature_matrix:
-  description: "Feature matrix for VAE input"
-  
+  description: "Feature matrix for VAE/TFT/SAC models"
+  schema_type: "features"
+
   required_columns:
     timestamp:
       type: datetime64[ns]
-      description: "Timestamp of the feature window"
+      description: "Timestamp of feature vector"
       nullable: false
       constraints:
         - monotonic_increasing: true
-    
-    # Price features
+
     mid_price:
       type: float64
-      description: "Mid price (bid + ask) / 2"
+      description: "Mid price = (bid + ask)/2"
       nullable: false
-    
+
     returns:
       type: float64
       description: "Log returns"
-      nullable: true  # First value may be NaN
-    
+      nullable: true
+      constraints:
+        - abs_value_lt: 1.0
+
     spread:
       type: float64
       description: "Ask - Bid"
       nullable: false
       constraints:
         - min_value: 0.0
-    
-    # Volume features
+
     volume:
       type: float64
-      description: "Volume"
+      description: "Volume over interval"
       nullable: true
       constraints:
         - min_value: 0.0
-    
-    # Microstructure features
+
     vwap:
       type: float64
       description: "Volume-weighted average price"
       nullable: true
-    
+
     ofi:
       type: float64
       description: "Order flow imbalance"
       nullable: true
-    
+
     micro_price:
       type: float64
-      description: "Micro price (order flow weighted)"
+      description: "Order flow weighted micro price"
       nullable: true
-  
+
   quality_checks:
-    - name: "no_infinite_values"
-      description: "No infinite values in any column"
-      rule: "not any(column.isin([np.inf, -np.inf]) for column in df)"
-    
+    - name: "no_inf_values"
+      description: "No infinite values in numeric columns"
+      rule: "not df.replace([np.inf, -np.inf], np.nan).isna().any().any()"
+
     - name: "reasonable_returns"
-      description: "Returns should be < 100% (sanity check)"
+      description: "Returns within ±100%"
       rule: "returns.abs() < 1.0"
       severity: "warning"
 
 # =============================================================================
-# Configuration Schema (Pipeline Configuration)
+# PIPELINE CONFIGURATION SCHEMA
 # =============================================================================
-
 pipeline_config:
-  description: "Configuration for data pipeline"
-  
+  description: "Configuration schema for AtlasFX data pipeline"
+
   aggregation:
     window_size:
       type: str
-      description: "Aggregation window (e.g., '1min', '5min')"
+      description: "Aggregation window"
       allowed_values: ["1min", "5min", "10min", "15min", "30min", "1h"]
-    
+
     aggregators:
       type: list[str]
-      description: "List of aggregator functions to apply"
-      allowed_values: ["mean", "high", "low", "close", "vwap", "ofi", "micro_price", "volume", "tick_count"]
-  
+      description: "List of aggregator functions"
+      allowed_values:
+        ["mean", "high", "low", "close", "vwap", "ofi", "micro_price", "volume", "tick_count"]
+
   normalization:
     method:
       type: str
       description: "Normalization method"
       allowed_values: ["zscore", "minmax", "robust"]
-    
+
     clip_threshold:
       type: float
-      description: "Z-score clipping threshold (e.g., 3.0 for 3 standard deviations)"
+      description: "Z-score clipping threshold"
       constraints:
         - min_value: 0.0
-  
+
   split:
     train_ratio:
       type: float
-      description: "Fraction of data for training"
+      description: "Training set fraction"
       constraints:
         - min_value: 0.0
         - max_value: 1.0
-    
+
     val_ratio:
       type: float
-      description: "Fraction of data for validation"
+      description: "Validation set fraction"
       constraints:
         - min_value: 0.0
         - max_value: 1.0
-    
+
     test_ratio:
       type: float
-      description: "Fraction of data for testing"
+      description: "Test set fraction"
       constraints:
         - min_value: 0.0
         - max_value: 1.0
-    
+
     cross_field_constraints:
       - name: "ratios_sum_to_one"
-        rule: "train_ratio + val_ratio + test_ratio == 1.0"
+        rule: "abs(train_ratio + val_ratio + test_ratio - 1.0) < 1e-6"
 
 # =============================================================================
-# Instruments Configuration
+# SUPPORTED INSTRUMENTS
 # =============================================================================
-
 instruments:
-  description: "Supported trading instruments"
-  
+  description: "Supported trading instruments and metadata"
+
   forex_pairs:
     - symbol: "EURUSD"
       description: "Euro / US Dollar"
-      min_tick: 0.00001  # 0.1 pip
-    
+      min_tick: 0.00001
+
     - symbol: "GBPUSD"
       description: "British Pound / US Dollar"
       min_tick: 0.00001
-    
+
     - symbol: "USDJPY"
       description: "US Dollar / Japanese Yen"
-      min_tick: 0.001  # 0.1 pip (different scale)
-    
+      min_tick: 0.001
+
     - symbol: "USDCHF"
       description: "US Dollar / Swiss Franc"
       min_tick: 0.00001
-    
+
     - symbol: "AUDUSD"
       description: "Australian Dollar / US Dollar"
       min_tick: 0.00001
-    
+
     - symbol: "USDCAD"
       description: "US Dollar / Canadian Dollar"
       min_tick: 0.00001
-    
+
     - symbol: "NZDUSD"
       description: "New Zealand Dollar / US Dollar"
       min_tick: 0.00001
 
 # =============================================================================
-# Validation Rules Reference
+# VALIDATION RULES REFERENCE
 # =============================================================================
-
 validation_rules:
   description: "Reference for validation rule syntax"
-  
-  column_types:
+  supported_column_types:
     - int64
     - float64
     - datetime64[ns]
     - object
     - bool
-  
+
   constraint_types:
-    - min_value: "Minimum allowed value (inclusive)"
-    - max_value: "Maximum allowed value (inclusive)"
-    - allowed_values: "List of allowed values"
-    - monotonic_increasing: "Values must increase"
-    - nullable: "Whether NaN values are allowed"
-  
+    - min_value: "Minimum allowed value"
+    - max_value: "Maximum allowed value"
+    - allowed_values: "Set of accepted categorical values"
+    - monotonic_increasing: "Sequence must be sorted ascending"
+    - nullable: "Allow missing or null values"
+    - abs_value_lt: "Absolute value must be less than threshold"
+
   severity_levels:
-    - error: "Validation fails, stop processing"
-    - warning: "Log warning, continue processing"
-    - info: "Log info, continue processing"
+    - error: "Stop pipeline on violation"
+    - warning: "Log warning, continue execution"
+    - info: "Informational notice, no action required"
