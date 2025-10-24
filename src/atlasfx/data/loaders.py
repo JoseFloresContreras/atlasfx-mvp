@@ -1,20 +1,9 @@
 print("✅ loaders.py loaded successfully")
 
-import os
-from typing import Any
-
-import pandas as pd
-from tqdm import tqdm
-
-from atlasfx.utils.logging import log
-
-
-def load_and_merge_csvs_from_folder(folder_path: str) -> tuple[pd.DataFrame, list[dict[str, Any]]]:
-    """
+import osLFfrom typing import AnyLFLFimport pandas as pdLFfrom tqdm import tqdmLFLFfrom atlasfx.utils.logging import logLFLFLFdef load_and_merge_csvs_from_folder(folder_path: str) -> tuple[pd.DataFrame, list[dict[str, Any]]]:LF    """
     Load and merge all CSV files from a specified folder.
     """
-    import os
-    from pathlib import Path
+    import pathlibLFLFimport importLFimport osLFfromLFimport PathLFLF
 
     print("\n=== DEBUG PATH INFO ===")
     print(f"Current working directory: {os.getcwd()}")
@@ -138,11 +127,8 @@ def process_single_symbol(
         log.info(f"\n🔄 Processing symbol: {symbol}")
         log.info(f"📁 Loading CSV files from: {folder_path}")
 
-        # ======================================================
-        # 🧭 DEBUGGING SECTION - path resolution diagnostics
-        # ======================================================
-        import os
-        from pathlib import Path
+        # ======================================================LF# 🧭 DEBUGGING SECTION - path resolution diagnosticsLF# ======================================================LFLF
+        import pathlibLFLFimport importLFimport osLFfromLFimport PathLFLF
 
         print("\n=== DEBUG SYMBOL INFO ===")
         print(f"Symbol: {symbol}")
@@ -205,8 +191,7 @@ def run_merge(config):
     Args:
         config (dict[str, Any]): Configuration dictionary containing pairs, instruments and output directory settings
     """
-    import os
-    from pathlib import Path
+    import pathlibLFLFimport importLFimport osLFfromLFimport PathLFLF
 
     try:
         # --- Ensure relative paths resolve from repo root ---

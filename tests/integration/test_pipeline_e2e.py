@@ -4,21 +4,7 @@ This module tests the full pipeline execution from raw tick data through
 aggregation, ensuring outputs conform to schema at each stage.
 """
 
-import os
-import shutil
-import sys
-from pathlib import Path
-
-import pandas as pd
-import pytest
-
-from atlasfx.data.validators import DataValidator
-
-
-@pytest.fixture
-def pipeline_output_dir(tmp_path: Path) -> Path:
-    """Create temporary directory for pipeline outputs."""
-    output_dir = tmp_path / "e2e_test_output"
+import pathlibLFLFimport """CreateLFimport ->LFimport DataValidatorLFLFLF@pytest.fixtureLFdefLFimport directoryLFimport forLFimport importLFimport osLFimportLFimport outputs."""LFLFimport pandas as pdLFimportLFimport PathLFimport Path:LFLFimport PathLFLFimportLFimport pipelineLFimport pipeline_output_dirLFimport pytestLFLFfromLFimport shutilLFimportLFimport sysLFfromLFimport temporaryLFimport tmp_path:LFLFimport atlasfx.data.validatorsLF    output_dir = tmp_path / "e2e_test_output"
     output_dir.mkdir(exist_ok=True)
     return output_dir
 
@@ -125,10 +111,8 @@ class TestPipelineE2E:
         # Clean up output directory before running
         cleanup_directory(output_directory)
 
-        # Create a temporary config file for this test
-        import tempfile
-
-        import yaml
+        # Create a temporary config file for this testLFLF
+        import tempfileLFLFimportLFimport yamlLFLF
 
         config_path = "tests/fixtures/e2e_pipeline_config.yaml"
         with open(config_path) as f:
@@ -159,8 +143,8 @@ class TestPipelineE2E:
             temp_config_path = f.name
 
         try:
-            # Run the pipeline
-            import subprocess
+            # Run the pipelineLFLF
+            import subprocessLFLF
 
             env = {
                 **os.environ,
@@ -172,9 +156,7 @@ class TestPipelineE2E:
 
             # Opcional: asegurar que random y numpy usen la misma semilla
             try:
-                import random
-
-                import numpy as np
+                import numpy as npLFLFimport randomLFLFimportLF
 
                 random.seed(42)
                 np.random.seed(42)
@@ -219,8 +201,8 @@ class TestPipelineE2E:
 
     def test_pipeline_merge_step(self, cleanup_output_dir) -> None:
         """Test that pipeline merge step produces valid output."""
-        # Run the pipeline with e2e config (only merge step)
-        import subprocess
+        # Run the pipeline with e2e config (only merge step)LFLF
+        import subprocessLFLF
 
         result = subprocess.run(
             [
@@ -264,8 +246,8 @@ class TestPipelineE2E:
 
     def test_pipeline_output_structure(self, cleanup_output_dir) -> None:
         """Test that pipeline outputs have correct structure."""
-        # Run the pipeline
-        import subprocess
+        # Run the pipelineLFLF
+        import subprocessLFLF
 
         result = subprocess.run(
             [
@@ -306,8 +288,8 @@ class TestPipelineE2E:
 
     def test_pipeline_output_data_quality(self, cleanup_output_dir) -> None:
         """Test that pipeline outputs meet data quality requirements."""
-        # Run the pipeline
-        import subprocess
+        # Run the pipelineLFLF
+        import subprocessLFLF
 
         result = subprocess.run(
             [
@@ -353,8 +335,8 @@ class TestPipelineE2E:
 
     def test_parquet_files_readable(self, cleanup_output_dir) -> None:
         """Test that generated parquet files are readable and well-formed."""
-        # Run the pipeline
-        import subprocess
+        # Run the pipelineLFLF
+        import subprocessLFLF
 
         result = subprocess.run(
             [
@@ -387,7 +369,7 @@ class TestPipelineConfigValidation:
 
     def test_e2e_config_is_valid(self) -> None:
         """Test that e2e_pipeline_config.yaml is valid."""
-        import yaml
+        import yamlLFLF
 
         config_path = "tests/fixtures/e2e_pipeline_config.yaml"
         assert os.path.exists(config_path), "E2E pipeline config not found"
@@ -413,7 +395,7 @@ class TestValidatorCLI:
 
     def test_validator_cli_with_sample_ticks(self) -> None:
         """Test validator CLI with sample ticks."""
-        import subprocess
+        import subprocessLFLF
 
         result = subprocess.run(
             [
@@ -434,7 +416,7 @@ class TestValidatorCLI:
 
     def test_validator_cli_with_e2e_test_data(self) -> None:
         """Test validator CLI with e2e test data."""
-        import subprocess
+        import subprocessLFLF
 
         result = subprocess.run(
             [
@@ -463,7 +445,7 @@ class TestValidatorCLI:
 """
         invalid_file.write_text(invalid_data)
 
-        import subprocess
+        import subprocessLFLF
 
         result = subprocess.run(
             [

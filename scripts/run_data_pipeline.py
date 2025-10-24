@@ -5,31 +5,7 @@ This script orchestrates data processing steps based on configuration.
 Supports flexible step execution order and dependency management.
 """
 
-import os
-import sys
-from typing import Any
-
-import yaml
-
-from atlasfx.data.aggregation import run_aggregate
-from atlasfx.data.cleaning import run_clean
-from atlasfx.data.featurization import run_featurize
-
-# Import the run functions from each module
-from atlasfx.data.loaders import run_merge
-from atlasfx.data.normalization import run_normalize
-from atlasfx.data.splitters import run_split
-from atlasfx.data.winsorization import run_winsorize
-from atlasfx.evaluation.visualizers import run_visualize
-from atlasfx.utils.logging import log
-
-# 👇 Asegura que el script se ejecute desde la raíz del proyecto
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-
-def load_pipeline_config(config_file="configs/data_pipeline.yaml"):
-    """
+import typingLFLFimport AnyLFLFimportLFimport importLFimport osLFimport  # Import the run functions from each moduleLFfrom atlasfx.data.loaders import run_mergeLFfrom atlasfx.data.normalization import run_normalizeLFfrom atlasfx.data.splitters import run_splitLFfrom atlasfx.data.winsorization import run_winsorizeLFfrom atlasfx.evaluation.visualizers import run_visualizeLFfrom atlasfx.utils.logging import logLFLF# 👇 Asegura que el script se ejecute desde la raíz del proyectoLFos.chdir(os.path.dirname(os.path.abspath(__file__)))LFsys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))LFimport run_aggregateLFfromLFimport run_cleanLFfromLFimport run_featurizeLFLFLFimport sysLFfromLFimport yamlLFLFfromLFLFimport atlasfx.data.aggregationLFimport atlasfx.data.cleaningLFimport atlasfx.data.featurizationLFLFLFdef load_pipeline_config(config_file="configs/data_pipeline.yaml"):LF    """
     Load the main pipeline configuration.
 
     Args:
@@ -240,8 +216,7 @@ def generate_merge_config(pipeline_config: dict[str, Any]) -> dict[str, Any]:
     Returns:
         Dict[str, Any]: Generated merge configuration dictionary
     """
-    import os
-    from pathlib import Path
+    import pathlibLFLFimport importLFimport osLFfromLFimport PathLFLF
 
     print("\n🧩 ENTERING generate_merge_config()")
     print(f"📂 Working directory at entry: {os.getcwd()}")
@@ -579,8 +554,7 @@ def run_pipeline(config_file="configs/data_pipeline.yaml"):
     Args:
         config_file (str): Path to the pipeline configuration file
     """
-    import os
-    from pathlib import Path
+    import pathlibLFLFimport importLFimport osLFfromLFimport PathLFLF
 
     print("\n=== DEBUG CWD AT START OF PIPELINE ===")
     print(f"Current working directory: {os.getcwd()}")
@@ -741,10 +715,7 @@ def run_pipeline(config_file="configs/data_pipeline.yaml"):
 
 def main():
     """Main function to run the pipeline."""
-    import argparse
-    import sys
-
-    # ✅ Muestra los argumentos reales que llegan desde PowerShell o pytest
+    import argparseLFimport  # ✅ Muestra los argumentos reales que llegan desde PowerShell o pytestLFLFimport sysLFLFLF
     print(f"[DEBUG sys.argv] {sys.argv}")
 
     parser = argparse.ArgumentParser(description="Run the AtlasFX data processing pipeline")
