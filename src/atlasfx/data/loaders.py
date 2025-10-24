@@ -13,8 +13,8 @@ def load_and_merge_csvs_from_folder(folder_path: str) -> tuple[pd.DataFrame, lis
     """
     Load and merge all CSV files from a specified folder.
     """
-    from pathlib import Path
     import os
+    from pathlib import Path
 
     print("\n=== DEBUG PATH INFO ===")
     print(f"Current working directory: {os.getcwd()}")
@@ -141,8 +141,8 @@ def process_single_symbol(
         # ======================================================
         # 🧭 DEBUGGING SECTION - path resolution diagnostics
         # ======================================================
-        from pathlib import Path
         import os
+        from pathlib import Path
 
         print("\n=== DEBUG SYMBOL INFO ===")
         print(f"Symbol: {symbol}")

@@ -6,6 +6,7 @@ Supports flexible step execution order and dependency management.
 """
 
 import os
+import sys
 from typing import Any
 
 import yaml
@@ -21,8 +22,6 @@ from atlasfx.data.splitters import run_split
 from atlasfx.data.winsorization import run_winsorize
 from atlasfx.evaluation.visualizers import run_visualize
 from atlasfx.utils.logging import log
-
-import os, sys
 
 # 👇 Asegura que el script se ejecute desde la raíz del proyecto
 os.chdir(os.path.dirname(os.path.abspath(__file__)))

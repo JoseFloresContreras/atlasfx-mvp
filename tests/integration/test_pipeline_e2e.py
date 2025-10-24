@@ -126,8 +126,9 @@ class TestPipelineE2E:
         cleanup_directory(output_directory)
 
         # Create a temporary config file for this test
-        import yaml
         import tempfile
+
+        import yaml
 
         config_path = "tests/fixtures/e2e_pipeline_config.yaml"
         with open(config_path) as f:
@@ -171,7 +172,9 @@ class TestPipelineE2E:
 
             # Opcional: asegurar que random y numpy usen la misma semilla
             try:
-                import random, numpy as np
+                import random
+
+                import numpy as np
 
                 random.seed(42)
                 np.random.seed(42)
