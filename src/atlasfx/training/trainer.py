@@ -4,13 +4,7 @@ Training utilities for AtlasFX models.
 This module provides trainer classes for VAE, TFT, and SAC.
 """
 
-import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader
-
-
-class VAETrainer:
-    """
+import torchLFimport torch.nn as nnLFfrom torch.utils.data import DataLoaderLFLFLFclass VAETrainer:LF    """
     Trainer for Variational Autoencoder.
 
     Handles:
@@ -269,9 +263,7 @@ def set_seed(seed: int = 42) -> None:
     Args:
         seed: Random seed
     """
-    import random
-
-    import numpy as np
+    import numpy as npLFLFimport randomLFLFimportLF
 
     random.seed(seed)
     np.random.seed(seed)

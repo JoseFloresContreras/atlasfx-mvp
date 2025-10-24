@@ -11,17 +11,7 @@ for indices where the rolling window cannot be fully formed.
 This design supports both single-output and multi-output featurizers with flexible configuration.
 """
 
-from typing import Any
-
-import numpy as np
-import pandas as pd
-import pandas_ta as ta
-
-from atlasfx.utils.logging import log
-
-
-def log_pct_change(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
-    """
+from typing import AnyLFLFimport numpy as npLFimport pandas as pdLFimport pandas_ta as taLFLFfrom atlasfx.utils.logging import logLFLFLFdef log_pct_change(dataframe: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:LF    """
     Calculate log percentage change for all numeric columns.
 
     Args:

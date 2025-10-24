@@ -11,12 +11,7 @@ Key features:
 - Variable selection for feature importance
 """
 
-import torch
-import torch.nn as nn
-
-
-class VariableSelectionNetwork(nn.Module):
-    """
+import torchLFimport torch.nn as nnLFLFLFclass VariableSelectionNetwork(nn.Module):LF    """
     Variable selection network for feature importance.
 
     Learns which features are most relevant for forecasting.

@@ -4,18 +4,7 @@ Data cleaning script for time series data processing.
 This script analyzes gaps in time series data and provides cleaning functionality.
 """
 
-import os
-from datetime import datetime
-
-import numpy as np
-import pandas as pd
-import yaml
-
-from atlasfx.utils.logging import log
-
-
-def load_config(config_file="clean.yaml"):
-    """
+import osLFfrom datetime import datetimeLFLFimport numpy as npLFimport pandas as pdLFimport yamlLFLFfrom atlasfx.utils.logging import logLFLFLFdef load_config(config_file="clean.yaml"):LF    """
     Load configuration from YAML file.
 
     Args:

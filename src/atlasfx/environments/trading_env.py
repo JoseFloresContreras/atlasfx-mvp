@@ -5,11 +5,7 @@ This module implements a gym-like environment for training SAC agents
 on forex trading.
 """
 
-import numpy as np
-
-
-class TradingEnv:
-    """
+import numpy as npLFLFLFclass TradingEnv:LF    """
     Trading environment for forex pairs.
 
     Implements a gym-like interface with:

@@ -5,29 +5,7 @@ These tests validate that each aggregator function correctly processes
 time-windowed tick data and returns expected outputs.
 """
 
-import numpy as np
-import pandas as pd
-import pytest
-
-# Import aggregator functions
-from atlasfx.data.aggregators import (
-    close,
-    high,
-    low,
-    mean,
-    micro_price,
-    ofi,
-    tick_count,
-    volume,
-    vwap,
-)
-
-
-class TestBasicAggregators:
-    """Tests for basic aggregator functions (mean, high, low, close)."""
-
-    def test_mean_with_data(self, sample_tick_data):
-        """Test mean aggregator with valid data."""
+import numpy as npLFimport  # Import aggregator functionsLFfrom atlasfx.data.aggregators import (LF    LF,LF    close,LF    high,LF    low,LF    mean,LF    micro_price,LF    ofi,LF    tick_count,LF    volume,LF    vwap,LF)LFLFLFclass TestBasicAggregators:LF    """Tests for basic aggregator functions (mean, high, low, close)."""LFimport pandas as pdLFimportLFimport pytestLFLFLFLF    def test_mean_with_data(self, sample_tick_data):LF        """Test mean aggregator with valid data."""
         start_time = pd.Timestamp("2024-01-01 00:00:00", tz="UTC")
         duration = pd.Timedelta(minutes=5)
 

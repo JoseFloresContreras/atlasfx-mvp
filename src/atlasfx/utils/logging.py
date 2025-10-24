@@ -4,13 +4,7 @@ Custom Logger Module
 Provides logging functionality with Unicode support and timestamped log files.
 """
 
-import logging
-import os
-from datetime import datetime
-
-
-class CustomLogger:
-    """
+import loggingLFimport osLFfrom datetime import datetimeLFLFLFclass CustomLogger:LF    """
     Custom logger class that supports Unicode characters and writes to timestamped log files.
     """
 

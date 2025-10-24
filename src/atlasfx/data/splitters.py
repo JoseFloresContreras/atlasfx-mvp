@@ -4,17 +4,7 @@ Data Splitting Module
 This module handles splitting data into train, validation, and test sets.
 """
 
-import os
-from typing import Any
-
-import pandas as pd
-from sklearn.model_selection import train_test_split
-
-from atlasfx.utils.logging import log
-
-
-def load_data(input_file: str) -> pd.DataFrame:
-    """
+import osLFfrom typing import AnyLFLFimport pandas as pdLFfrom sklearn.model_selection import train_test_splitLFLFfrom atlasfx.utils.logging import logLFLFLFdef load_data(input_file: str) -> pd.DataFrame:LF    """
     Load data from parquet file.
 
     Args:

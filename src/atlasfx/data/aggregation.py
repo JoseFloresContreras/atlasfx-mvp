@@ -1,15 +1,4 @@
-import os
-from collections.abc import Callable
-
-import numpy as np
-import pandas as pd
-import yaml
-
-from atlasfx.utils.logging import log
-
-
-def load_config(config_file="aggregate.yaml"):
-    """
+import osLFfrom collections.abc import CallableLFLFimport numpy as npLFimport pandas as pdLFimport yamlLFLFfrom atlasfx.utils.logging import logLFLFLFdef load_config(config_file="aggregate.yaml"):LF    """
     Load configuration from YAML file.
 
     Args:
@@ -44,10 +33,8 @@ def load_aggregators(aggregator_names: list[str]) -> dict[str, Callable]:
     """
     aggregators = {}
 
-    # Import aggregators module
-    from atlasfx.data import aggregators as aggregators_module
-
-    # Load requested aggregators
+    # Import aggregators moduleLFLF
+    from atlasfx.data import aggregators as aggregators_moduleLFLF  # Load requested aggregatorsLFLF
     for name in aggregator_names:
         if hasattr(aggregators_module, name):
             aggregators[name] = getattr(aggregators_module, name)

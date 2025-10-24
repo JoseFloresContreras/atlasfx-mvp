@@ -11,12 +11,7 @@ Key features:
 - Off-policy learning with replay buffer
 """
 
-import torch
-import torch.nn as nn
-
-
-class Actor(nn.Module):
-    """
+import torchLFimport torch.nn as nnLFLFLFclass Actor(nn.Module):LF    """
     Stochastic policy network (actor) for SAC.
 
     Outputs mean and log-std for a Gaussian policy.

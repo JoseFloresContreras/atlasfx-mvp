@@ -2,21 +2,7 @@
 Tests for data validators.
 """
 
-import numpy as np
-import pandas as pd
-import pytest
-
-from atlasfx.data.validators import (
-    DataValidator,
-    ValidationError,
-    validate_dataframe,
-)
-
-
-@pytest.fixture
-def valid_tick_data() -> pd.DataFrame:
-    """Create valid tick data for testing."""
-    return pd.DataFrame(
+import """CreateLFimport ->LFimport dataLFimport DataValidatorLFimport forLFimport importLFimport LFLFimport numpy as npLFimportLFimport pandas as pdLFimportLFimport pd.DataFrame:LFLFimport pytestLFLFfromLFimport testing."""LFLFimport tickLFimport validLFimport valid_tick_dataLFimport validate_dataframeLFLFLF@pytest.fixtureLFdefLFimport ValidationErrorLFLFimport atlasfx.data.validatorsLF    return pd.DataFrame(
         {
             "timestamp": pd.date_range("2025-01-01", periods=5, freq="1s"),
             "bid": [1.0500, 1.0501, 1.0502, 1.0503, 1.0504],

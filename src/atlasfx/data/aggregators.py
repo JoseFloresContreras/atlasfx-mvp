@@ -12,14 +12,7 @@ Each aggregator returns a dictionary where keys are output names and values are 
 This design supports both single-output (current) and multi-output (future) aggregators.
 """
 
-import numpy as np
-import pandas as pd
-
-from atlasfx.utils.logging import log
-
-
-def mean(start_time: pd.Timestamp, duration: pd.Timedelta, data: pd.DataFrame) -> dict[str, float]:
-    """
+import numpy as npLFimport pandas as pdLFLFfrom atlasfx.utils.logging import logLFLFLFdef mean(start_time: pd.Timestamp, duration: pd.Timedelta, data: pd.DataFrame) -> dict[str, float]:LF    """
     Calculate the mean mid-price for a time window.
 
     Args:

@@ -5,12 +5,7 @@ This module implements a β-VAE that learns compressed latent representations
 of high-dimensional market features.
 """
 
-import torch
-import torch.nn as nn
-
-
-class Encoder(nn.Module):
-    """
+import torchLFimport torch.nn as nnLFLFLFclass Encoder(nn.Module):LF    """
     VAE Encoder network.
 
     Encodes high-dimensional input features into a lower-dimensional

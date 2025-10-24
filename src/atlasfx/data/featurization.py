@@ -1,16 +1,4 @@
-import os
-from collections.abc import Callable
-from typing import Any
-
-import numpy as np
-import pandas as pd
-import yaml
-
-from atlasfx.utils.logging import log
-
-
-def load_config(config_file="featurize.yaml"):
-    """
+import osLFfrom collections.abc import CallableLFfrom typing import AnyLFLFimport numpy as npLFimport pandas as pdLFimport yamlLFLFfrom atlasfx.utils.logging import logLFLFLFdef load_config(config_file="featurize.yaml"):LF    """
     Load configuration from YAML file.
 
     Args:
@@ -45,10 +33,8 @@ def load_featurizers(featurizer_names: list[str]) -> dict[str, Callable]:
     """
     featurizers = {}
 
-    # Import featurizers module
-    from atlasfx.data import featurizers as featurizers_module
-
-    # Load requested featurizers
+    # Import featurizers moduleLFLF
+    from atlasfx.data import featurizers as featurizers_moduleLFLF  # Load requested featurizersLFLF
     for name in featurizer_names:
         if hasattr(featurizers_module, name):
             featurizers[name] = getattr(featurizers_module, name)

@@ -5,20 +5,7 @@ Validates Level 1 tick data and aggregated features according to the schema
 defined in configs/schema.yaml.
 """
 
-from typing import Any
-
-import numpy as np
-import pandas as pd
-import yaml
-
-from atlasfx.utils.logging import log
-
-
-class ValidationError(Exception):
-    """Custom exception for data validation errors."""
-
-    pass
-
+from typing import (LF    :LF,LF    AnyLFLFimport,LF    Exception,LF    ValidationError,LF    """Custom,LF    atlasfx.utils.logging,LF    data,LF    errors."""LFLF,LF    exception,LF    for,LF    import,LF    logLFLFLFclass,LF)LFfrom typing import numpy as npLFimportLFfrom typing import pandas as pdLFimportLFfrom typing import passLF, validation, yamlLFLFfromLF
 
 class DataValidator:
     """
@@ -351,7 +338,7 @@ def validate_dataframe(
 
 # CLI interface for testing
 if __name__ == "__main__":
-    import argparse
+    import argparseLFLF
 
     parser = argparse.ArgumentParser(description="Validate tick data")
     parser.add_argument("--sample", type=str, help="Path to sample CSV file")

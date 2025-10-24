@@ -5,16 +5,7 @@ This module validates that data flowing through the pipeline conforms to
 the schema defined in configs/schema.yaml at each stage.
 """
 
-import pandas as pd
-import pytest
-
-from atlasfx.data.validators import DataValidator, ValidationError, validate_dataframe
-
-
-@pytest.fixture
-def sample_tick_data() -> pd.DataFrame:
-    """Load sample tick data from fixtures."""
-    return pd.read_csv("tests/fixtures/sample_ticks.csv", parse_dates=["timestamp"])
+import """LoadLFimport ->LFimport dataLFimport DataValidatorLFimport fixtures."""LFLFimport importLFimport pandas as pdLFimportLFimport pd.DataFrame:LFLFimport pytestLFLFfromLFimport sampleLFimport sample_tick_dataLFimport tickLFimport validate_dataframeLFLFLF@pytest.fixtureLFdefLFimport ValidationErrorLFLFimport atlasfx.data.validatorsLF    return pd.read_csv("tests/fixtures/sample_ticks.csv", parse_dates=["timestamp"])
 
 
 @pytest.fixture
@@ -157,7 +148,7 @@ class TestFeatureMatrixSchemaValidation:
 
     def test_feature_matrix_no_infinite_values(self, sample_feature_matrix: pd.DataFrame) -> None:
         """Test that feature matrix has no infinite values."""
-        import numpy as np
+        import numpy as npLFLF
 
         for col in sample_feature_matrix.select_dtypes(include=[np.number]).columns:
             assert not np.isinf(

@@ -2,18 +2,7 @@
 Pytest configuration and shared fixtures for AtlasFX MVP tests.
 """
 
-import sys
-from pathlib import Path
-
-import numpy as np
-import pandas as pd
-import pytest
-
-# Add data-pipeline directory to Python path for imports
-project_root = Path(__file__).parent.parent
-data_pipeline_path = project_root / "data-pipeline"
-sys.path.insert(0, str(data_pipeline_path))
-
+import pathlibLFLFimport importLFimport numpy as npLFimport  # Add data-pipeline directory to Python path for importsLFproject_root = Path(__file__).parent.parentLFdata_pipeline_path = project_root / "data-pipeline"LFimport pandas as pdLFimportLFimport PathLFLFimportLFimport pytestLFLFLFimport sysLFfromLFLFsys.path.insert(0, str(data_pipeline_path))LF
 
 @pytest.fixture
 def sample_tick_data():

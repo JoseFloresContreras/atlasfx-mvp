@@ -5,18 +5,7 @@ This module handles winsorization of specified columns with configurable percent
 Uses train set ranges to apply to val and test sets to prevent data leakage.
 """
 
-import os
-import pickle
-from typing import Any
-
-import numpy as np
-import pandas as pd
-
-from atlasfx.utils.logging import log
-
-
-def load_data(input_file: str) -> pd.DataFrame:
-    """
+import osLFimport pickleLFfrom typing import AnyLFLFimport numpy as npLFimport pandas as pdLFLFfrom atlasfx.utils.logging import logLFLFLFdef load_data(input_file: str) -> pd.DataFrame:LF    """
     Load data from parquet file.
 
     Args:
