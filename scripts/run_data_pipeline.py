@@ -23,6 +23,7 @@ from atlasfx.evaluation.visualizers import run_visualize
 from atlasfx.utils.logging import log
 
 import os, sys
+
 # 👇 Asegura que el script se ejecute desde la raíz del proyecto
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -242,6 +243,7 @@ def generate_merge_config(pipeline_config: dict[str, Any]) -> dict[str, Any]:
     """
     import os
     from pathlib import Path
+
     print("\n🧩 ENTERING generate_merge_config()")
     print(f"📂 Working directory at entry: {os.getcwd()}")
     print(f"🔧 pipeline_config keys: {list(pipeline_config.keys())}")
@@ -580,7 +582,7 @@ def run_pipeline(config_file="configs/data_pipeline.yaml"):
     """
     import os
     from pathlib import Path
-    
+
     print("\n=== DEBUG CWD AT START OF PIPELINE ===")
     print(f"Current working directory: {os.getcwd()}")
     print(f"__file__ resolved: {Path(__file__).resolve()}")
@@ -610,7 +612,6 @@ def run_pipeline(config_file="configs/data_pipeline.yaml"):
             log.error("❌ No steps specified in pipeline configuration")
             return
 
-        
         log.info(f"📋 Steps to execute: {', '.join(steps_to_execute)}", also_print=True)
 
         # Validate and reorder steps with dependency warnings
@@ -641,10 +642,10 @@ def run_pipeline(config_file="configs/data_pipeline.yaml"):
                     print(f"→ Current working dir: {os.getcwd()}")
                     print(f"→ File __file__: {__file__}")
                     print(f"→ pipeline_config keys: {list(pipeline_config.keys())}")
-                
+
                     merge_config = generate_merge_config(pipeline_config)
                     print(f"→ merge_config: {merge_config}")
-                
+
                     run_pipeline_step(step_name, run_merge, merge_config)
 
                 elif step_name == "clean_ticks":
@@ -772,7 +773,6 @@ def main():
 
     # ✅ Log final
     log.info("\n📋 Pipeline execution completed!")
-
 
 
 if __name__ == "__main__":

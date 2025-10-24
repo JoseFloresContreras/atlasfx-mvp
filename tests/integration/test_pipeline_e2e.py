@@ -41,63 +41,56 @@ def cleanup_directory(output_dir: str) -> None:
 def validate_parquet_file(parquet_file: Path, validator: DataValidator) -> None:
     """
     Validate a single parquet file with extended checks.
-    
+
     Validates:
     - Required columns (timestamp, bid, ask, volume)
     - Correct types (datetime, float)
     - ask >= bid always
     - No duplicates in timestamp
     - DataFrame not empty
-    
+
     Args:
         parquet_file: Path to parquet file to validate
         validator: DataValidator instance
-        
+
     Raises:
         AssertionError: If any validation check fails
     """
     df = pd.read_parquet(parquet_file)
-    
+
     # Check 1: DataFrame not empty
     assert len(df) > 0, f"Output file {parquet_file.name} is empty"
-    
+
     # Convert timestamp to datetime if needed (parquet may store as string)
     if "timestamp" in df.columns and not pd.api.types.is_datetime64_any_dtype(df["timestamp"]):
         df["timestamp"] = pd.to_datetime(df["timestamp"])
-    
+
     # Check 2: Required columns present
     required_columns = ["timestamp", "bid", "ask"]
     for col in required_columns:
         assert col in df.columns, f"Missing required column {col} in {parquet_file.name}"
-    
+
     # Check 3: Correct types
-    assert pd.api.types.is_datetime64_any_dtype(df["timestamp"]), (
-        f"timestamp must be datetime type in {parquet_file.name}"
-    )
-    assert pd.api.types.is_float_dtype(df["bid"]), (
-        f"bid must be float type in {parquet_file.name}"
-    )
-    assert pd.api.types.is_float_dtype(df["ask"]), (
-        f"ask must be float type in {parquet_file.name}"
-    )
-    
+    assert pd.api.types.is_datetime64_any_dtype(
+        df["timestamp"]
+    ), f"timestamp must be datetime type in {parquet_file.name}"
+    assert pd.api.types.is_float_dtype(df["bid"]), f"bid must be float type in {parquet_file.name}"
+    assert pd.api.types.is_float_dtype(df["ask"]), f"ask must be float type in {parquet_file.name}"
+
     # Check 4: ask >= bid always
     crossed = df["ask"] < df["bid"]
-    assert not crossed.any(), (
-        f"Found {crossed.sum()} crossed spreads (ask < bid) in {parquet_file.name}"
-    )
-    
+    assert (
+        not crossed.any()
+    ), f"Found {crossed.sum()} crossed spreads (ask < bid) in {parquet_file.name}"
+
     # Check 5: No duplicates in timestamp
     duplicates = df["timestamp"].duplicated().sum()
-    assert duplicates == 0, (
-        f"Found {duplicates} duplicate timestamps in {parquet_file.name}"
-    )
-    
+    assert duplicates == 0, f"Found {duplicates} duplicate timestamps in {parquet_file.name}"
+
     # Check 6: Use DataValidator for comprehensive validation
     is_valid, errors = validator.validate_tick_data(df)
-    assert is_valid, (
-        f"Pipeline output {parquet_file.name} failed validation:\n" + 
-        "\n".join(f"  - {error}" for error in errors)
+    assert is_valid, f"Pipeline output {parquet_file.name} failed validation:\n" + "\n".join(
+        f"  - {error}" for error in errors
     )
 
 
@@ -118,12 +111,12 @@ class TestPipelineE2E:
     def test_pipeline_with_multiple_pairs(self, pairs: list[str], output_directory: str) -> None:
         """
         Test pipeline execution with different pairs and output directories.
-        
+
         This parametrized test runs the pipeline with:
         - Single pairs (testusd, eurusd, gbpusd)
         - Multiple pair combinations
         - Different output directories
-        
+
         For each configuration, validates:
         - Pipeline runs successfully
         - Output files are created
@@ -131,78 +124,93 @@ class TestPipelineE2E:
         """
         # Clean up output directory before running
         cleanup_directory(output_directory)
-        
+
         # Create a temporary config file for this test
         import yaml
         import tempfile
-        
+
         config_path = "tests/fixtures/e2e_pipeline_config.yaml"
         with open(config_path) as f:
             config = yaml.safe_load(f)
-        
+
         # Update config with specific pairs and output directory
         pair_configs = []
         for pair in pairs:
             if pair == "testusd":
-                pair_configs.append({
-                    "symbol": "testusd",
-                    "folder_path": "tests/fixtures/e2e_test_data"
-                })
+                pair_configs.append(
+                    {"symbol": "testusd", "folder_path": "tests/fixtures/e2e_test_data"}
+                )
             elif pair == "eurusd":
-                pair_configs.append({
-                    "symbol": "eurusd",
-                    "folder_path": "tests/fixtures/e2e_test_data/eurusd"
-                })
+                pair_configs.append(
+                    {"symbol": "eurusd", "folder_path": "tests/fixtures/e2e_test_data/eurusd"}
+                )
             elif pair == "gbpusd":
-                pair_configs.append({
-                    "symbol": "gbpusd",
-                    "folder_path": "tests/fixtures/e2e_test_data/gbpusd"
-                })
-        
+                pair_configs.append(
+                    {"symbol": "gbpusd", "folder_path": "tests/fixtures/e2e_test_data/gbpusd"}
+                )
+
         config["merge"]["pairs"] = pair_configs
         config["output_directory"] = output_directory
-        
+
         # Write temporary config
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             yaml.safe_dump(config, f)
             temp_config_path = f.name
-        
+
         try:
             # Run the pipeline
             import subprocess
-            
+
+            env = {
+                **os.environ,
+                "PYTHONIOENCODING": "utf-8",
+                "PYTHONHASHSEED": "0",
+                "TZ": "UTC",
+                "ATLASFX_SEED": "42",
+            }
+
+            # Opcional: asegurar que random y numpy usen la misma semilla
+            try:
+                import random, numpy as np
+
+                random.seed(42)
+                np.random.seed(42)
+            except Exception:
+                pass
+
             result = subprocess.run(
                 [sys.executable, "scripts/run_data_pipeline.py", temp_config_path],
                 capture_output=True,
                 text=True,
+                env=env,
             )
-            
+
             # Check that pipeline ran successfully
             assert result.returncode == 0, (
                 f"Pipeline failed for pairs {pairs}:\n"
                 f"STDOUT: {result.stdout}\n"
                 f"STDERR: {result.stderr}"
             )
-            
+
             # Check that output directory was created
             output_dir = Path(output_directory)
             assert output_dir.exists(), f"Output directory {output_directory} was not created"
-            
+
             # Find generated parquet files
             parquet_files = list(output_dir.glob("*.parquet"))
             assert len(parquet_files) > 0, f"No parquet files were generated for pairs {pairs}"
-            
+
             # Validate each parquet file with extended validation
             validator = DataValidator(schema_path="configs/schema.yaml")
-            
+
             for parquet_file in parquet_files:
                 validate_parquet_file(parquet_file, validator)
-        
+
         finally:
             # Clean up temporary config file
             if os.path.exists(temp_config_path):
                 os.unlink(temp_config_path)
-            
+
             # Clean up output directory
             cleanup_directory(output_directory)
 
@@ -212,7 +220,11 @@ class TestPipelineE2E:
         import subprocess
 
         result = subprocess.run(
-            [sys.executable, "scripts/run_data_pipeline.py", "tests/fixtures/e2e_pipeline_config.yaml"],
+            [
+                sys.executable,
+                "scripts/run_data_pipeline.py",
+                "tests/fixtures/e2e_pipeline_config.yaml",
+            ],
             capture_output=True,
             text=True,
         )
@@ -253,7 +265,11 @@ class TestPipelineE2E:
         import subprocess
 
         result = subprocess.run(
-            [sys.executable, "scripts/run_data_pipeline.py", "tests/fixtures/e2e_pipeline_config.yaml"],
+            [
+                sys.executable,
+                "scripts/run_data_pipeline.py",
+                "tests/fixtures/e2e_pipeline_config.yaml",
+            ],
             capture_output=True,
             text=True,
         )
@@ -291,7 +307,11 @@ class TestPipelineE2E:
         import subprocess
 
         result = subprocess.run(
-            [sys.executable, "scripts/run_data_pipeline.py", "tests/fixtures/e2e_pipeline_config.yaml"],
+            [
+                sys.executable,
+                "scripts/run_data_pipeline.py",
+                "tests/fixtures/e2e_pipeline_config.yaml",
+            ],
             capture_output=True,
             text=True,
         )
@@ -334,7 +354,11 @@ class TestPipelineE2E:
         import subprocess
 
         result = subprocess.run(
-            [sys.executable, "scripts/run_data_pipeline.py", "tests/fixtures/e2e_pipeline_config.yaml"],
+            [
+                sys.executable,
+                "scripts/run_data_pipeline.py",
+                "tests/fixtures/e2e_pipeline_config.yaml",
+            ],
             capture_output=True,
             text=True,
         )
@@ -379,6 +403,7 @@ class TestPipelineConfigValidation:
         assert "time_column" in merge_config, "Missing 'time_column' in merge config"
         assert "pairs" in merge_config, "Missing 'pairs' in merge config"
 
+
 @pytest.mark.integration
 class TestValidatorCLI:
     """Test the validator CLI functionality."""
@@ -388,7 +413,15 @@ class TestValidatorCLI:
         import subprocess
 
         result = subprocess.run(
-            [sys.executable, "-m", "atlasfx.data.validators", "--sample", "tests/fixtures/sample_ticks.csv", "--type", "tick_data"],
+            [
+                sys.executable,
+                "-m",
+                "atlasfx.data.validators",
+                "--sample",
+                "tests/fixtures/sample_ticks.csv",
+                "--type",
+                "tick_data",
+            ],
             capture_output=True,
             text=True,
         )
@@ -401,7 +434,15 @@ class TestValidatorCLI:
         import subprocess
 
         result = subprocess.run(
-            [sys.executable, "-m", "atlasfx.data.validators", "--sample", "tests/fixtures/e2e_test_data/testusd_tick_data.csv", "--type", "tick_data"],
+            [
+                sys.executable,
+                "-m",
+                "atlasfx.data.validators",
+                "--sample",
+                "tests/fixtures/e2e_test_data/testusd_tick_data.csv",
+                "--type",
+                "tick_data",
+            ],
             capture_output=True,
             text=True,
         )
@@ -422,7 +463,15 @@ class TestValidatorCLI:
         import subprocess
 
         result = subprocess.run(
-            [sys.executable, "-m", "atlasfx.data.validators", "--sample", str(invalid_file), "--type", "tick_data"],
+            [
+                sys.executable,
+                "-m",
+                "atlasfx.data.validators",
+                "--sample",
+                str(invalid_file),
+                "--type",
+                "tick_data",
+            ],
             capture_output=True,
             text=True,
         )

@@ -207,10 +207,12 @@ def run_merge(config):
     """
     import os
     from pathlib import Path
-    
+
     try:
         # --- Ensure relative paths resolve from repo root ---
-        REPO_ROOT = Path(__file__).resolve().parents[3]  # → sube desde src/atlasfx/data hasta atlasfx-mvp
+        REPO_ROOT = (
+            Path(__file__).resolve().parents[3]
+        )  # → sube desde src/atlasfx/data hasta atlasfx-mvp
         os.chdir(REPO_ROOT)
 
         print("🔥 run_merge() has started")
@@ -221,8 +223,8 @@ def run_merge(config):
         print(f"📁 Output directory (raw): {config.get('output_directory')}")
         print(f"🔧 Full config passed in:\n{config}")
         print(f"🔎 Absolute folder paths for pairs:")
-        for p in config.get('pairs', []):
-            f = Path(p['folder_path']).resolve()
+        for p in config.get("pairs", []):
+            f = Path(p["folder_path"]).resolve()
             print(f"   - {p['symbol']}: {f} (exists={f.exists()})")
 
         log.info("🚀 Starting CSV Merge Process")
